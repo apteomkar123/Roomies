@@ -1,7 +1,7 @@
 [build]
   base    = "roomies-app"
   command = "npm run build"
-  publish = "roomies-app/dist"
+  publish = "dist"
 
 [[redirects]]
   from   = "/*"
