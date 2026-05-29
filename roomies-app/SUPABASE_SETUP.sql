@@ -55,7 +55,7 @@ create trigger on_auth_user_created
 -- ──────────────────────────────────────────────────────────
 -- HOUSEHOLD MEMBERS JUNCTION
 -- ──────────────────────────────────────────────────────────
-create type if not exists member_role as enum ('Administrator', 'Tenant', 'Landlord');
+create type member_role as enum ('Administrator', 'Tenant', 'Landlord');
 
 create table if not exists household_members (
   id           uuid primary key default gen_random_uuid(),
@@ -69,7 +69,7 @@ create table if not exists household_members (
 -- ──────────────────────────────────────────────────────────
 -- USER PRESENCE STATUSES
 -- ──────────────────────────────────────────────────────────
-create type if not exists presence_status as enum (
+create type presence_status as enum (
   'Available', 'Sleeping', 'Quiet Hours / Studying', 'Work From Home', 'Away'
 );
 
@@ -83,7 +83,7 @@ create table if not exists user_presence (
 -- ──────────────────────────────────────────────────────────
 -- CHORES
 -- ──────────────────────────────────────────────────────────
-create type if not exists chore_recurrence as enum (
+create type chore_recurrence as enum (
   'Twice Weekly', 'Weekly', 'Bi-Weekly', 'Monthly', 'Quarterly'
 );
 
@@ -97,7 +97,7 @@ create table if not exists chores (
   created_at       timestamptz not null default now()
 );
 
-create type if not exists chore_status as enum ('Pending', 'Completed', 'Swapped', 'Auctioned');
+create type chore_status as enum ('Pending', 'Completed', 'Swapped', 'Auctioned');
 
 create table if not exists chore_assignments (
   id           uuid primary key default gen_random_uuid(),
@@ -123,7 +123,7 @@ create table if not exists karma_marketplace (
 -- ──────────────────────────────────────────────────────────
 -- TRANSACTIONS
 -- ──────────────────────────────────────────────────────────
-create type if not exists expense_category as enum (
+create type expense_category as enum (
   'Rent', 'Groceries', 'Utilities', 'Shared Subscriptions', 'Miscellaneous Ad-Hoc'
 );
 
@@ -181,7 +181,7 @@ create table if not exists shopping_items (
 -- ──────────────────────────────────────────────────────────
 -- NOTICES & BROADCASTS
 -- ──────────────────────────────────────────────────────────
-create type if not exists notice_type as enum (
+create type notice_type as enum (
   'Instant Buzz Notification', 'Permanent Memo', 'Formal Landlord Notice'
 );
 
@@ -230,7 +230,7 @@ create table if not exists guest_logs (
 -- ──────────────────────────────────────────────────────────
 -- MAINTENANCE TICKETS
 -- ──────────────────────────────────────────────────────────
-create type if not exists maintenance_status as enum ('Open', 'Vendor Dispatched', 'Resolved');
+create type maintenance_status as enum ('Open', 'Vendor Dispatched', 'Resolved');
 
 create table if not exists maintenance_tickets (
   id           uuid primary key default gen_random_uuid(),
@@ -246,7 +246,7 @@ create table if not exists maintenance_tickets (
 -- ──────────────────────────────────────────────────────────
 -- PET LOGS
 -- ──────────────────────────────────────────────────────────
-create type if not exists pet_action as enum (
+create type pet_action as enum (
   'Morning Feed', 'Evening Feed', 'Daily Walk', 'Medication Administered'
 );
 
