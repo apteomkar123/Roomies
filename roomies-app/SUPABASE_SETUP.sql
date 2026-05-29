@@ -55,7 +55,7 @@ create trigger on_auth_user_created
 -- ──────────────────────────────────────────────────────────
 -- HOUSEHOLD MEMBERS JUNCTION
 -- ──────────────────────────────────────────────────────────
-create type member_role as enum ('Administrator', 'Tenant', 'Landlord');
+do $$ begin create type member_role as enum ('Administrator', 'Tenant', 'Landlord'); exception when duplicate_object then null; end $$;
 
 create table if not exists household_members (
   id           uuid primary key default gen_random_uuid(),
@@ -69,9 +69,7 @@ create table if not exists household_members (
 -- ──────────────────────────────────────────────────────────
 -- USER PRESENCE STATUSES
 -- ──────────────────────────────────────────────────────────
-create type presence_status as enum (
-  'Available', 'Sleeping', 'Quiet Hours / Studying', 'Work From Home', 'Away'
-);
+do $$ begin create type presence_status as enum ('Available', 'Sleeping', 'Quiet Hours / Studying', 'Work From Home', 'Away'); exception when duplicate_object then null; end $$;
 
 create table if not exists user_presence (
   profile_id   uuid primary key references profiles(id) on delete cascade,
@@ -83,9 +81,7 @@ create table if not exists user_presence (
 -- ──────────────────────────────────────────────────────────
 -- CHORES
 -- ──────────────────────────────────────────────────────────
-create type chore_recurrence as enum (
-  'Twice Weekly', 'Weekly', 'Bi-Weekly', 'Monthly', 'Quarterly'
-);
+do $$ begin create type chore_recurrence as enum ('Twice Weekly', 'Weekly', 'Bi-Weekly', 'Monthly', 'Quarterly'); exception when duplicate_object then null; end $$;
 
 create table if not exists chores (
   id               uuid primary key default gen_random_uuid(),
@@ -97,7 +93,7 @@ create table if not exists chores (
   created_at       timestamptz not null default now()
 );
 
-create type chore_status as enum ('Pending', 'Completed', 'Swapped', 'Auctioned');
+do $$ begin create type chore_status as enum ('Pending', 'Completed', 'Swapped', 'Auctioned'); exception when duplicate_object then null; end $$;
 
 create table if not exists chore_assignments (
   id           uuid primary key default gen_random_uuid(),
@@ -123,9 +119,7 @@ create table if not exists karma_marketplace (
 -- ──────────────────────────────────────────────────────────
 -- TRANSACTIONS
 -- ──────────────────────────────────────────────────────────
-create type expense_category as enum (
-  'Rent', 'Groceries', 'Utilities', 'Shared Subscriptions', 'Miscellaneous Ad-Hoc'
-);
+do $$ begin create type expense_category as enum ('Rent', 'Groceries', 'Utilities', 'Shared Subscriptions', 'Miscellaneous Ad-Hoc'); exception when duplicate_object then null; end $$;
 
 create table if not exists transactions (
   id           uuid primary key default gen_random_uuid(),
@@ -181,9 +175,7 @@ create table if not exists shopping_items (
 -- ──────────────────────────────────────────────────────────
 -- NOTICES & BROADCASTS
 -- ──────────────────────────────────────────────────────────
-create type notice_type as enum (
-  'Instant Buzz Notification', 'Permanent Memo', 'Formal Landlord Notice'
-);
+do $$ begin create type notice_type as enum ('Instant Buzz Notification', 'Permanent Memo', 'Formal Landlord Notice'); exception when duplicate_object then null; end $$;
 
 create table if not exists notices (
   id           uuid primary key default gen_random_uuid(),
@@ -230,7 +222,7 @@ create table if not exists guest_logs (
 -- ──────────────────────────────────────────────────────────
 -- MAINTENANCE TICKETS
 -- ──────────────────────────────────────────────────────────
-create type maintenance_status as enum ('Open', 'Vendor Dispatched', 'Resolved');
+do $$ begin create type maintenance_status as enum ('Open', 'Vendor Dispatched', 'Resolved'); exception when duplicate_object then null; end $$;
 
 create table if not exists maintenance_tickets (
   id           uuid primary key default gen_random_uuid(),
@@ -246,9 +238,7 @@ create table if not exists maintenance_tickets (
 -- ──────────────────────────────────────────────────────────
 -- PET LOGS
 -- ──────────────────────────────────────────────────────────
-create type pet_action as enum (
-  'Morning Feed', 'Evening Feed', 'Daily Walk', 'Medication Administered'
-);
+do $$ begin create type pet_action as enum ('Morning Feed', 'Evening Feed', 'Daily Walk', 'Medication Administered'); exception when duplicate_object then null; end $$;
 
 create table if not exists pet_logs (
   id           uuid primary key default gen_random_uuid(),
