@@ -20,10 +20,10 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 36, background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Roomies
-        </div>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', gap: 16 }}>
+        <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB' }}>Roomies</div>
+        <div style={{ width: 32, height: 32, border: '3px solid #E0E7FF', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
@@ -60,7 +60,7 @@ export default function App() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', padding: 24 }}>
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 16 }}>Roomies</div>
+          <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB', marginBottom: 16 }}>Roomies</div>
           <div style={{ background: 'rgba(244,63,94,0.08)', border: '1.5px solid rgba(244,63,94,0.25)', borderRadius: 16, padding: '20px 24px', color: '#BE123C' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Supabase not configured</div>
             <div style={{ fontSize: 14, lineHeight: 1.6, color: '#6B7280' }}>
