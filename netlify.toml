@@ -1,0 +1,9 @@
+[build]
+  base    = "roomies-app"
+  command = "npm run build"
+  publish = "roomies-app/dist"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
