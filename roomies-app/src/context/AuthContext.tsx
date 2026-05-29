@@ -10,6 +10,7 @@ interface AuthCtx {
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<void>
+  signInWithApple: () => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -58,6 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
   }
 
+  const signInWithApple = async () => {
+    await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: window.location.origin } })
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
   }
@@ -67,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ session, user, profile, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, refreshProfile }}>
+    <Ctx.Provider value={{ session, user, profile, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut, refreshProfile }}>
       {children}
     </Ctx.Provider>
   )

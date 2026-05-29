@@ -1,0 +1,114 @@
+# Roomies — Feature Status
+
+---
+
+## ✅ Ready & Available
+
+### Auth
+- Email / password sign-up and sign-in
+- Google OAuth sign-in (requires Google provider enabled in Supabase dashboard)
+- Auto-profile creation on sign-up (Postgres trigger)
+- Session persistence + auto token refresh
+- Sign out
+
+### Onboarding
+- 6-step flow (Welcome → Profile → Household → Rules → Review → Sign)
+- Create household (generates random invite code, saves co-living rules)
+- Join household via 6-digit invite code with live validation flash
+- Co-living rule sliders (quiet hours, hygiene score, max guest nights)
+- Joiner rule review screen with animated glass bubbles
+- Swipe-to-sign digital agreement (mouse + touch)
+- Step progress indicator dots
+
+### Dashboard
+- Ambient Porcelain Neon Glass canvas (animated radial orbs)
+- Floating capsule NavBar with gradient active state
+- Presence status selector (Available / Sleeping / Quiet Hours / WFH / Away)
+- Roommate grid with Avatar Halo glow rings (colour changes per status)
+- **Buzz Deck** — one-tap Trash Buzz and Quiet Buzz alerts (posts to Notices in real-time)
+- **Appliance Booker** — hourly time-grid for shared resources, colour-coded per user
+- **Pet Tracker** — four action buttons with timestamp + username stamps
+- **Lockbox widget** — masked secrets with reveal toggle
+
+### Chores
+- Add chores with recurrence (Twice Weekly / Weekly / Bi-Weekly / Monthly / Quarterly)
+- Procedural rotation display (modulo algorithm, respects away state)
+- Pending assignment list with mark-done (+10 karma) and auction actions
+- Karma Marketplace — list and claim auctioned tasks (+karma reward)
+- Real-time updates via Supabase channel
+
+### Finance
+- Add transactions with category and auto equal-split
+- Debt Minimizer — greedy creditor/debtor matching to reduce transfer count
+- Net balance display per roommate
+- One-tap "mark my debts paid" settlement
+- Transaction history with category colour dots
+- Real-time updates
+
+### Notices
+- Post memos, buzz notifications, and formal landlord notices
+- Acknowledge / read receipts with unread dot indicator
+- Real-time broadcast to all household members
+
+### Bookings
+- 7-day day selector
+- Per-resource timeline grid (colour-coded per user)
+- Add / delete own bookings
+- Real-time updates
+
+### Maintenance
+- Report tickets with title, description, and photo upload (to Supabase Storage)
+- Status pipeline: Open → Vendor Dispatched → Resolved
+- Real-time updates
+
+### Guests
+- Log guest stays (name, arrival, departure)
+- Overstay detection against co-living agreement threshold
+- **Guest Overstay Surcharge** — auto utility surcharge calculation (Section 3C algorithm)
+- Surcharge alert cards
+
+### Shopping List
+- Add items with quantity and urgent flag
+- Check off / uncheck purchased items
+- Real-time updates
+
+### Pets
+- Add multiple pets
+- Four action buttons per pet with today's completion log
+- Real-time updates
+
+### Lockbox (full page)
+- Add / delete secrets
+- Restricted flag — hides value behind a reveal tap
+- Invite code display on More page
+
+### Profiles & Karma
+- Username + avatar selection (6 DiceBear presets)
+- Karma counter (default 100, +10 per completed chore, +bounty per claimed marketplace task)
+- Away toggle (removes user from chore rotation)
+
+### Database
+- Full Postgres schema (18 tables, all enums, all foreign keys)
+- Row-Level Security on every table, scoped to household membership
+- `is_household_member()` helper function
+- Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
+
+---
+
+## 🔜 Can't Be Added Yet
+
+| Feature | Reason |
+|---|---|
+| **Apple Sign In** | Requires an Apple Developer account ($99/yr), a registered App ID with Sign In with Apple capability, and a native iOS bundle ID. The web OAuth flow also requires a Services ID and private key configured in Supabase. Add once the iOS app is registered on App Store Connect. |
+| **Push Notifications (iOS)** | Requires APNs (Apple Push Notification Service) certificate/key, a native app container, and entitlements. Web push via VAPID is possible but not supported on iOS Safari without a PWA install prompt. Add alongside the iOS app target. |
+| **Push Notifications (Android)** | Requires FCM (Firebase Cloud Messaging) integration and a native Android container or a PWA with VAPID keys. Add when an Android build target is set up. |
+| **Native Camera / QR Scanner** | The lockbox Wi-Fi QR code card and maintenance photo capture work via browser `<input type="file">` on desktop. On iOS a native camera API (`AVFoundation`) gives a far better experience. Add when wrapped in a native shell (e.g. Capacitor or React Native). |
+| **Haptic Feedback** | Spec calls for haptic feedback on invite-code verification (Step 3). `navigator.vibrate()` is blocked on iOS Safari. Requires native `UIImpactFeedbackGenerator`. Add with iOS wrapper. |
+| **Biometric / Face ID Auth** | Logical companion to Apple Sign In for re-auth on lockbox reveals and agreement signing. Requires `LocalAuthentication` framework — native iOS only. |
+| **Real-time Notification Badge (app icon)** | iOS home-screen badge count requires APNs + a native app. Not possible in a browser tab. |
+| **Offline Mode** | Full offline-first support requires a service worker with background sync and a local cache strategy (e.g. IndexedDB + Supabase offline queue). Currently the app requires an active connection. Add as a dedicated PWA hardening pass. |
+| **Landlord Portal (separate role view)** | The `Landlord` role is stored in the DB but currently sees the same UI as Tenants. A dedicated landlord dashboard (maintenance overview, formal notice broadcast, inspection uploads) is scoped for a future release. |
+| **Move-in Inspection Photo Audit** | The `/inspections/` folder in the storage bucket is reserved but the inspection flow (timestamped photo grid, room-by-room checklist) is not yet built. Blocked on the Landlord Portal above. |
+| **In-App Payments (cash bounties)** | The `cash_bounty` field on karma marketplace listings is stored but no payment processor is wired up. Requires Stripe (web) or StoreKit (iOS) integration and legal/compliance review before handling real money. |
+| **Recurring Calendar Export (.ics)** | Exporting chore rotation to Apple Calendar / Google Calendar requires generating iCalendar files or using the Google Calendar API. Requires OAuth scopes beyond the current auth setup. |
+| **Email / SMS Notifications** | Buzz alerts currently post to the in-app Notices table only. Sending real emails or SMS requires a transactional email provider (Resend, SendGrid) and/or Twilio wired into Supabase Edge Functions. |
