@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- Soft inner highlight -->
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!-- House roof -->
+  <polygon points="256,108 404,248 108,248" fill="white"/>
+  <!-- Roof chimney -->
+  <rect x="308" y="140" width="36" height="60" rx="6" fill="white"/>
+
+  <!-- House body -->
+  <rect x="128" y="238" width="256" height="176" rx="8" fill="white"/>
+
+  <!-- Door (cut out with gradient fill to show through) -->
+  <rect x="214" y="316" width="84" height="98" rx="42" fill="url(#bg)"/>
+
+  <!-- Left window -->
+  <rect x="152" y="268" width="52" height="48" rx="10" fill="url(#bg)"/>
+  <!-- Right window -->
+  <rect x="308" y="268" width="52" height="48" rx="10" fill="url(#bg)"/>
+
+  <!-- Three people dots above door - roommates -->
+  <circle cx="216" cy="210" r="16" fill="white" opacity="0.6"/>
+  <circle cx="256" cy="198" r="20" fill="white" opacity="0.85"/>
+  <circle cx="296" cy="210" r="16" fill="white" opacity="0.6"/>
+</svg>
