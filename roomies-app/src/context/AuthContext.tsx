@@ -10,8 +10,6 @@ interface AuthCtx {
   needsPasswordReset: boolean
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithGoogle: () => Promise<void>
-  signInWithApple: () => Promise<void>
   signInWithAppWare: () => void
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
@@ -20,10 +18,6 @@ interface AuthCtx {
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
-
-// Always redirect back to the app root — add this exact URL to Supabase
-// Authentication → URL Configuration → Redirect URLs
-const APP_URL = window.location.origin
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -80,20 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }
 
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: APP_URL },
-    })
-  }
-
-  const signInWithApple = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: APP_URL },
-    })
-  }
-
   const signInWithAppWare = () => {
     window.location.href = `https://appware-auth.netlify.app?redirect_to=${encodeURIComponent(window.location.origin)}`
   }
@@ -120,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithAppWare, sendPasswordReset, updatePassword, signOut, refreshProfile }}>
+    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, updatePassword, signOut, refreshProfile }}>
       {children}
     </Ctx.Provider>
   )
