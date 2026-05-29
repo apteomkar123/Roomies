@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
 import { HouseholdProvider } from './context/HouseholdContext'
@@ -32,7 +33,7 @@ function AppRoutes() {
   const hasHousehold = !!profile?.household_id
 
   // guard: redirect to /welcome if not authed or no household yet
-  const guard = (el: JSX.Element) => authed && hasHousehold ? el : <Navigate to="/welcome" replace />
+  const guard = (el: ReactElement) => authed && hasHousehold ? el : <Navigate to="/welcome" replace />
 
   return (
     <HouseholdProvider>
