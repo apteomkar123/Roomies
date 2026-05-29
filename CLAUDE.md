@@ -18,4 +18,7 @@ RUN A SYNTAX CHECK.
 
 FIX ISSUES FOUND IN THE CHECKS.
 
+UPDATE [text](STATUS.md) with all the features that have been added, and all the feature you haven't been able to add (follow current format in the file)
+
+
 PUSH TO GIT AFTER ALL CHANGES HAVE BEEN MADE.
