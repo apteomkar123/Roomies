@@ -12,6 +12,7 @@ interface AuthCtx {
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<void>
   signInWithApple: () => Promise<void>
+  signInWithAppWare: () => void
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
@@ -41,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Must subscribe before getSession — in Supabase v2 PKCE, onAuthStateChange fires
     // INITIAL_SESSION which triggers the URL code exchange for OAuth callbacks.
-    // Calling getSession() first risks clearing loading before the exchange fires.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       clearTimeout(timeout)
       setSession(s)
@@ -50,6 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) fetchProfile(s.user.id).finally(() => setLoading(false))
       else { setProfile(null); setLoading(false) }
     })
+
+    // AppWare SSO: if redirected back from the AppWare portal with hash tokens, inject session
+    const hash = window.location.hash
+    if (hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.substring(1))
+      const at = params.get('access_token')
+      const rt = params.get('refresh_token')
+      if (at && rt) {
+        window.history.replaceState(null, '', window.location.pathname)
+        supabase.auth.setSession({ access_token: at, refresh_token: rt })
+          .catch(() => { clearTimeout(timeout); setLoading(false) })
+      }
+    }
 
     // Fallback: if INITIAL_SESSION doesn't fire (no auth event), resolve loading
     supabase.auth.getSession().catch(() => { clearTimeout(timeout); setLoading(false) })
@@ -81,6 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  const signInWithAppWare = () => {
+    window.location.href = `https://appware-auth.netlify.app?redirect_to=${encodeURIComponent(window.location.origin)}`
+  }
+
   const sendPasswordReset = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: APP_URL,
@@ -103,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, sendPasswordReset, updatePassword, signOut, refreshProfile }}>
+    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithAppWare, sendPasswordReset, updatePassword, signOut, refreshProfile }}>
       {children}
     </Ctx.Provider>
   )

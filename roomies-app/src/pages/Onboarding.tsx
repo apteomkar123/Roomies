@@ -19,7 +19,7 @@ function genInviteCode() {
 }
 
 export default function Onboarding() {
-  const { user, profile, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, sendPasswordReset, refreshProfile } = useAuth()
+  const { user, profile, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithAppWare, sendPasswordReset, refreshProfile } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(user ? 2 : 1)
@@ -235,6 +235,14 @@ export default function Onboarding() {
               Roomies
             </div>
             <p style={{ color: '#6B7280', fontSize: 15, marginBottom: 32 }}>Your co-living command center</p>
+
+            <button
+              onClick={signInWithAppWare}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '14px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', cursor: 'pointer', fontWeight: 700, fontSize: 15, marginBottom: 12, fontFamily: 'inherit', color: '#fff' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.2)"/><path d="M8 12h8M12 8l4 4-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Sign in with AppWare
+            </button>
 
             <button
               onClick={signInWithGoogle}

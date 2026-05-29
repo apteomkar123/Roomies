@@ -7,7 +7,8 @@
 ### Auth
 - Email / password sign-up and sign-in
 - Google OAuth sign-in (requires Google provider enabled in Supabase dashboard) — fixed race condition where OAuth callback fired after initial render, causing user to be stuck on sign-in screen
-- Auto-profile creation on sign-up (Postgres trigger)
+- **AppWare SSO** — "Sign in with AppWare" button redirects to the AppWare auth portal; incoming hash tokens are automatically injected as a Supabase session
+- Auto-profile creation on sign-up (Postgres trigger, handles email/Google/AppWare users)
 - Session persistence + auto token refresh
 - Sign out
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
