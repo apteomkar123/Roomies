@@ -277,7 +277,7 @@ export default function Onboarding() {
                 </div>
                 <button className="btn-blue" onClick={handleAuth} disabled={loading}>{loading ? '…' : isSignUp ? 'Create Account' : 'Sign In'}</button>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-                  <button onClick={() => setIsSignUp(!isSignUp)} style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <button onClick={() => { setIsSignUp(v => !v); setEmail(''); setPassword('') }} style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {isSignUp ? 'Already have an account?' : "Don't have an account?"}
                   </button>
                   {!isSignUp && (

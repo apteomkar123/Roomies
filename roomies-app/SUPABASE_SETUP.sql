@@ -32,16 +32,24 @@ create table if not exists profiles (
 -- Auto-create profile on sign-up (handles email, Google, and AppWare SSO users)
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
+declare
+  base_name text;
+  final_name text;
+  n         int := 0;
 begin
+  base_name := coalesce(
+    new.raw_user_meta_data->>'username',
+    new.raw_user_meta_data->>'full_name',
+    split_part(coalesce(new.email, new.id::text), '@', 1)
+  );
+  final_name := base_name;
+  -- Append incrementing suffix until username is unique
+  while exists (select 1 from profiles where username = final_name) loop
+    n := n + 1;
+    final_name := base_name || n;
+  end loop;
   insert into profiles (id, username)
-  values (
-    new.id,
-    coalesce(
-      new.raw_user_meta_data->>'username',
-      new.raw_user_meta_data->>'full_name',
-      split_part(coalesce(new.email, new.id::text), '@', 1)
-    )
-  )
+  values (new.id, final_name)
   on conflict (id) do nothing;
   return new;
 end;

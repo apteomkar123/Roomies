@@ -2,3 +2,6 @@ Nothing is showing up on the page
 Continue with Google, starts to load the page, but then does nothing after that, just returns to the sign in page. Fix that.
 Add a show password button in the password field, use the little eye symbol that every website has.
 The authenticator website (Sign in with AppWare) will redirect the user to whatever app you're trying to use.
+When I try to make an account, I'm getting an error that says "Database error saving new user"
+If the user enters their sign in information, but realizes they don't have an account and then hit the create account button, the text fields should clear out.
+Take out sign in with Google and sign in with apple cards.
