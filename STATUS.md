@@ -7,7 +7,7 @@
 ### Auth
 - Email / password sign-up and sign-in
 - Google and Apple OAuth handled by the AppWare portal (removed from this app's sign-in screen)
-- **AppWare SSO** — "Sign in with AppWare" button redirects to the AppWare auth portal; incoming hash tokens are automatically injected as a Supabase session
+- **AppWare SSO** — "Sign in with AppWare" button redirects to the AppWare auth portal with the full current URL as `redirect_to`, so users are returned to the exact page they came from after authenticating; incoming hash tokens are automatically injected as a Supabase session
 - Auto-profile creation on sign-up (Postgres trigger, handles email/Google/AppWare users)
 - Session persistence + auto token refresh
 - Sign out

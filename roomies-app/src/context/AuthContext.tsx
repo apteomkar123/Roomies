@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithAppWare = () => {
-    window.location.href = `https://appware-auth.netlify.app?redirect_to=${encodeURIComponent(window.location.origin)}`
+    window.location.href = `https://appware-auth.netlify.app?redirect_to=${encodeURIComponent(window.location.href)}`
   }
 
   const sendPasswordReset = async (email: string) => {
