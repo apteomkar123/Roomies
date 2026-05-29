@@ -1,20 +1,27 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? ''
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? ''
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase env vars. Copy .env.example → .env and fill in your project values.')
+export const supabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
+
+if (!supabaseConfigured) {
+  console.error('Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. Set them in .env (local) or Netlify environment variables (deployed).')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-  realtime: {
-    params: { eventsPerSecond: 10 },
-  },
-})
+// Use placeholder values so createClient never throws — all calls will simply fail gracefully
+export const supabase = createClient(
+  supabaseUrl  || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+    realtime: {
+      params: { eventsPerSecond: 10 },
+    },
+  }
+)
 
 export type { Session, User } from '@supabase/supabase-js'

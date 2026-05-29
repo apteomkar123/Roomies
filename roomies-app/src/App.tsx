@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { supabaseConfigured } from './lib/supabase'
 import { HouseholdProvider } from './context/HouseholdContext'
 import Onboarding   from './pages/Onboarding'
 import Dashboard    from './pages/Dashboard'
@@ -55,6 +56,24 @@ function AppRoutes() {
 }
 
 export default function App() {
+  if (!supabaseConfigured) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', padding: 24 }}>
+        <div style={{ maxWidth: 420, textAlign: 'center' }}>
+          <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 16 }}>Roomies</div>
+          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1.5px solid rgba(244,63,94,0.25)', borderRadius: 16, padding: '20px 24px', color: '#BE123C' }}>
+            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Supabase not configured</div>
+            <div style={{ fontSize: 14, lineHeight: 1.6, color: '#6B7280' }}>
+              Add <code style={{ background: 'rgba(0,0,0,0.06)', padding: '2px 6px', borderRadius: 4 }}>VITE_SUPABASE_URL</code> and{' '}
+              <code style={{ background: 'rgba(0,0,0,0.06)', padding: '2px 6px', borderRadius: 4 }}>VITE_SUPABASE_ANON_KEY</code> to your{' '}
+              Netlify environment variables (Site Settings → Environment Variables).
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>
