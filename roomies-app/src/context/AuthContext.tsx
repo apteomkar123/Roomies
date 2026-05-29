@@ -39,23 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 5000)
 
-    supabase.auth.getSession()
-      .then(({ data: { session: s } }) => {
-        clearTimeout(timeout)
-        setSession(s)
-        setUser(s?.user ?? null)
-        if (s?.user) fetchProfile(s.user.id).finally(() => setLoading(false))
-        else setLoading(false)
-      })
-      .catch(() => { clearTimeout(timeout); setLoading(false) })
-
+    // Must subscribe before getSession — in Supabase v2 PKCE, onAuthStateChange fires
+    // INITIAL_SESSION which triggers the URL code exchange for OAuth callbacks.
+    // Calling getSession() first risks clearing loading before the exchange fires.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      clearTimeout(timeout)
       setSession(s)
       setUser(s?.user ?? null)
       if (event === 'PASSWORD_RECOVERY') setNeedsPasswordReset(true)
-      if (s?.user) fetchProfile(s.user.id)
-      else setProfile(null)
+      if (s?.user) fetchProfile(s.user.id).finally(() => setLoading(false))
+      else { setProfile(null); setLoading(false) }
     })
+
+    // Fallback: if INITIAL_SESSION doesn't fire (no auth event), resolve loading
+    supabase.auth.getSession().catch(() => { clearTimeout(timeout); setLoading(false) })
+
     return () => subscription.unsubscribe()
   }, [])
 
