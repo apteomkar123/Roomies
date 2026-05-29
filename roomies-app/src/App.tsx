@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useState } from 'react'
 import type { ReactElement } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
@@ -24,10 +25,42 @@ const Spinner = () => (
   </div>
 )
 
+function PasswordResetScreen() {
+  const { updatePassword } = useAuth()
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  async function submit() {
+    if (pw.length < 6) return setErr('Password must be at least 6 characters')
+    if (pw !== pw2) return setErr('Passwords do not match')
+    const { error } = await updatePassword(pw)
+    if (error) setErr(error)
+    else setMsg('Password updated! Redirecting…')
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 400, background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(20px)', borderRadius: 24, padding: 36, border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}>
+        <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 32, color: '#2563EB', marginBottom: 8 }}>Roomies</div>
+        <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 4 }}>Set new password</div>
+        <div style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Choose a strong password for your account</div>
+        {err && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{err}</div>}
+        {msg && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px 14px', color: '#059669', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{msg}</div>}
+        <input className="glass-input" type="password" placeholder="New password" value={pw} onChange={e => setPw(e.target.value)} style={{ marginBottom: 12 }} />
+        <input className="glass-input" type="password" placeholder="Confirm password" value={pw2} onChange={e => setPw2(e.target.value)} style={{ marginBottom: 20 }} onKeyDown={e => e.key === 'Enter' && submit()} />
+        <button className="btn-blue" onClick={submit}>Update Password</button>
+      </div>
+    </div>
+  )
+}
+
 function AppRoutes() {
-  const { session, profile, loading } = useAuth()
+  const { session, profile, loading, needsPasswordReset } = useAuth()
 
   if (loading) return <Spinner />
+  if (needsPasswordReset) return <PasswordResetScreen />
 
   const authed = !!session
   const hasHousehold = !!profile?.household_id

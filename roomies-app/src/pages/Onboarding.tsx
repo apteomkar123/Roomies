@@ -19,7 +19,7 @@ function genInviteCode() {
 }
 
 export default function Onboarding() {
-  const { user, profile, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, refreshProfile } = useAuth()
+  const { user, profile, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, sendPasswordReset, refreshProfile } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(user ? 2 : 1)
@@ -30,6 +30,8 @@ export default function Onboarding() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
+  const [forgotMode, setForgotMode] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   // Step 2 state
   const [username, setUsername] = useState(profile?.username ?? '')
@@ -66,6 +68,15 @@ export default function Onboarding() {
     setLoading(false)
     if (error) return setError(error)
     next()
+  }
+
+  async function handleForgot() {
+    if (!email.trim()) return setError('Enter your email address above first')
+    setLoading(true)
+    const { error } = await sendPasswordReset(email)
+    setLoading(false)
+    if (error) return setError(error)
+    setResetSent(true)
   }
 
   // ── Step 2: Save profile ──────────────────────────────────────
@@ -242,11 +253,35 @@ export default function Onboarding() {
             </div>
 
             <input className="glass-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ marginBottom: 12 }} />
-            <input className="glass-input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ marginBottom: 20 }} onKeyDown={e => e.key === 'Enter' && handleAuth()} />
-            <button className="btn-blue" onClick={handleAuth} disabled={loading}>{loading ? '…' : isSignUp ? 'Create Account' : 'Sign In'}</button>
-            <button onClick={() => setIsSignUp(!isSignUp)} style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginTop: 16, fontFamily: 'inherit' }}>
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </button>
+
+            {forgotMode ? (
+              <>
+                {resetSent
+                  ? <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12, padding: '12px 16px', color: '#059669', fontWeight: 600, fontSize: 14, marginBottom: 16 }}>
+                      Check your email for a reset link ✓
+                    </div>
+                  : <button className="btn-mint" onClick={handleForgot} disabled={loading} style={{ marginBottom: 12 }}>{loading ? '…' : 'Send Reset Link'}</button>
+                }
+                <button onClick={() => { setForgotMode(false); setResetSent(false) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  ← Back to sign in
+                </button>
+              </>
+            ) : (
+              <>
+                <input className="glass-input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ marginBottom: 20 }} onKeyDown={e => e.key === 'Enter' && handleAuth()} />
+                <button className="btn-blue" onClick={handleAuth} disabled={loading}>{loading ? '…' : isSignUp ? 'Create Account' : 'Sign In'}</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                  <button onClick={() => setIsSignUp(!isSignUp)} style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                  </button>
+                  {!isSignUp && (
+                    <button onClick={() => setForgotMode(true)} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
