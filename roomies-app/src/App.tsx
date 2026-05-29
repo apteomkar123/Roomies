@@ -31,6 +31,8 @@ function PasswordResetScreen() {
   const [pw2, setPw2] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [showPw2, setShowPw2] = useState(false)
 
   async function submit() {
     if (pw.length < 6) return setErr('Password must be at least 6 characters')
@@ -48,8 +50,24 @@ function PasswordResetScreen() {
         <div style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Choose a strong password for your account</div>
         {err && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{err}</div>}
         {msg && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px 14px', color: '#059669', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{msg}</div>}
-        <input className="glass-input" type="password" placeholder="New password" value={pw} onChange={e => setPw(e.target.value)} style={{ marginBottom: 12 }} />
-        <input className="glass-input" type="password" placeholder="Confirm password" value={pw2} onChange={e => setPw2(e.target.value)} style={{ marginBottom: 20 }} onKeyDown={e => e.key === 'Enter' && submit()} />
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <input className="glass-input" type={showPw ? 'text' : 'password'} placeholder="New password" value={pw} onChange={e => setPw(e.target.value)} style={{ paddingRight: 44 }} />
+          <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 4, display: 'flex', alignItems: 'center' }}>
+            {showPw
+              ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            }
+          </button>
+        </div>
+        <div style={{ position: 'relative', marginBottom: 20 }}>
+          <input className="glass-input" type={showPw2 ? 'text' : 'password'} placeholder="Confirm password" value={pw2} onChange={e => setPw2(e.target.value)} style={{ paddingRight: 44 }} onKeyDown={e => e.key === 'Enter' && submit()} />
+          <button type="button" onClick={() => setShowPw2(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 4, display: 'flex', alignItems: 'center' }}>
+            {showPw2
+              ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            }
+          </button>
+        </div>
         <button className="btn-blue" onClick={submit}>Update Password</button>
       </div>
     </div>

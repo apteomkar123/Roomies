@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -32,6 +32,7 @@ export default function Onboarding() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [forgotMode, setForgotMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Step 2 state
   const [username, setUsername] = useState(profile?.username ?? '')
@@ -59,6 +60,11 @@ export default function Onboarding() {
 
   const next = () => setStep(s => s + 1)
   const setError = (msg: string) => { setErr(msg); setTimeout(() => setErr(''), 3000) }
+
+  // Advance past sign-in if OAuth callback fires after initial render
+  useEffect(() => {
+    if (user && step === 1) setStep(2)
+  }, [user])
 
   // ── Step 1: Auth ──────────────────────────────────────────────
   async function handleAuth() {
@@ -268,7 +274,15 @@ export default function Onboarding() {
               </>
             ) : (
               <>
-                <input className="glass-input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ marginBottom: 20 }} onKeyDown={e => e.key === 'Enter' && handleAuth()} />
+                <div style={{ position: 'relative', marginBottom: 20 }}>
+                  <input className="glass-input" type={showPassword ? 'text' : 'password'} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ paddingRight: 44 }} onKeyDown={e => e.key === 'Enter' && handleAuth()} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 4, display: 'flex', alignItems: 'center' }}>
+                    {showPassword
+                      ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
                 <button className="btn-blue" onClick={handleAuth} disabled={loading}>{loading ? '…' : isSignUp ? 'Create Account' : 'Sign In'}</button>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
                   <button onClick={() => setIsSignUp(!isSignUp)} style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
