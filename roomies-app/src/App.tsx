@@ -15,41 +15,41 @@ import Shopping     from './pages/Shopping'
 import Pets         from './pages/Pets'
 import More         from './pages/More'
 
+const Spinner = () => (
+  <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', gap: 16 }}>
+    <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB' }}>Roomies</div>
+    <div style={{ width: 32, height: 32, border: '3px solid #E0E7FF', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+)
+
 function AppRoutes() {
   const { session, profile, loading } = useAuth()
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', gap: 16 }}>
-        <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB' }}>Roomies</div>
-        <div style={{ width: 32, height: 32, border: '3px solid #E0E7FF', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
-  }
+  if (loading) return <Spinner />
 
-  // Not authenticated → onboarding
-  if (!session) return <Navigate to="/welcome" replace />
-
-  // Authenticated but no household → onboarding continuation
+  const authed = !!session
   const hasHousehold = !!profile?.household_id
+
+  // guard: redirect to /welcome if not authed or no household yet
+  const guard = (el: JSX.Element) => authed && hasHousehold ? el : <Navigate to="/welcome" replace />
 
   return (
     <HouseholdProvider>
       <Routes>
         <Route path="/welcome"     element={<Onboarding />} />
-        <Route path="/"            element={hasHousehold ? <Dashboard />   : <Navigate to="/welcome" replace />} />
-        <Route path="/chores"      element={hasHousehold ? <Chores />      : <Navigate to="/welcome" replace />} />
-        <Route path="/finance"     element={hasHousehold ? <Finance />     : <Navigate to="/welcome" replace />} />
-        <Route path="/notices"     element={hasHousehold ? <Notices />     : <Navigate to="/welcome" replace />} />
-        <Route path="/bookings"    element={hasHousehold ? <Bookings />    : <Navigate to="/welcome" replace />} />
-        <Route path="/maintenance" element={hasHousehold ? <Maintenance /> : <Navigate to="/welcome" replace />} />
-        <Route path="/lockbox"     element={hasHousehold ? <Lockbox />     : <Navigate to="/welcome" replace />} />
-        <Route path="/guests"      element={hasHousehold ? <Guests />      : <Navigate to="/welcome" replace />} />
-        <Route path="/shopping"    element={hasHousehold ? <Shopping />    : <Navigate to="/welcome" replace />} />
-        <Route path="/pets"        element={hasHousehold ? <Pets />        : <Navigate to="/welcome" replace />} />
-        <Route path="/more"        element={hasHousehold ? <More />        : <Navigate to="/welcome" replace />} />
-        <Route path="*"            element={<Navigate to="/" replace />} />
+        <Route path="/"            element={guard(<Dashboard />)} />
+        <Route path="/chores"      element={guard(<Chores />)} />
+        <Route path="/finance"     element={guard(<Finance />)} />
+        <Route path="/notices"     element={guard(<Notices />)} />
+        <Route path="/bookings"    element={guard(<Bookings />)} />
+        <Route path="/maintenance" element={guard(<Maintenance />)} />
+        <Route path="/lockbox"     element={guard(<Lockbox />)} />
+        <Route path="/guests"      element={guard(<Guests />)} />
+        <Route path="/shopping"    element={guard(<Shopping />)} />
+        <Route path="/pets"        element={guard(<Pets />)} />
+        <Route path="/more"        element={guard(<More />)} />
+        <Route path="*"            element={<Navigate to={authed && hasHousehold ? '/' : '/welcome'} replace />} />
       </Routes>
     </HouseholdProvider>
   )
