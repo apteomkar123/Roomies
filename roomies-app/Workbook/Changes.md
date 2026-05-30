@@ -3,7 +3,6 @@
 BUG FIXES
 ------------
 
-
 NEW FEATURES
 -------------
 

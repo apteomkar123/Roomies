@@ -5,3 +5,5 @@ The authenticator website (Sign in with AppWare) will redirect the user to whate
 When I try to make an account, I'm getting an error that says "Database error saving new user"
 If the user enters their sign in information, but realizes they don't have an account and then hit the create account button, the text fields should clear out.
 Take out sign in with Google and sign in with apple cards.
+Cursor on phone at first shows up outside the email textbox and then returns.
+Console error when I try to make an account: Failed to load resource: the server responded with a status of 500 ()

@@ -12,6 +12,7 @@
 - Session persistence + auto token refresh
 - Sign out
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
+- Input font-size bumped to 16px to prevent iOS Safari auto-zoom on focus (fixes cursor appearing outside the field)
 
 ### Onboarding
 - 6-step flow (Welcome → Profile → Household → Rules → Review → Sign)
