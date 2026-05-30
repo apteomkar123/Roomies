@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTutorial } from '../context/TutorialContext'
 
@@ -47,7 +48,7 @@ export default function Tutorial() {
     navigate(current.route)
   }, [step, active])
 
-  // Find element and measure it
+  // Find element and measure it; fall back to a centre rect if element is in a conditional render
   useEffect(() => {
     if (!active) return
     setRect(null)
@@ -57,7 +58,17 @@ export default function Tutorial() {
       return false
     }
     if (!find()) {
-      const t = setTimeout(find, 350)
+      const t = setTimeout(() => {
+        if (!find()) {
+          // Element is conditionally rendered (e.g. empty chores/finance) — use a centre fallback
+          setRect(new DOMRect(
+            window.innerWidth * 0.1,
+            window.innerHeight * 0.38,
+            window.innerWidth * 0.8,
+            56
+          ))
+        }
+      }, 400)
       return () => clearTimeout(t)
     }
   }, [step, active])
@@ -78,7 +89,7 @@ export default function Tutorial() {
   const pad = 10
 
   // Spotlight style — box-shadow creates the dark vignette outside the element
-  const spotStyle: React.CSSProperties = rect ? {
+  const spotStyle: CSSProperties = rect ? {
     position: 'fixed',
     top: rect.top - pad,
     left: rect.left - pad,
