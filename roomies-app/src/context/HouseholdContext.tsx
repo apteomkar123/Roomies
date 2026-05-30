@@ -23,14 +23,14 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
 
   const load = async () => {
-    if (!profile?.household_id) {
+    if (!profile?.active_household_id) {
       setHousehold(null); setMembers([]); setMemberProfiles([]); setPresences([])
       return
     }
     setLoading(true)
     const [{ data: hh }, { data: mems }] = await Promise.all([
-      supabase.from('households').select('*').eq('id', profile.household_id).single(),
-      supabase.from('household_members').select('*, profiles(*)').eq('household_id', profile.household_id),
+      supabase.from('households').select('*').eq('id', profile.active_household_id).single(),
+      supabase.from('household_members').select('*, profiles(*)').eq('household_id', profile.active_household_id),
     ])
     setHousehold(hh as Household)
     const memberList = (mems ?? []) as HouseholdMember[]
@@ -46,16 +46,16 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [profile?.household_id])
+  useEffect(() => { load() }, [profile?.active_household_id])
 
   // Real-time: presence changes
   useEffect(() => {
-    if (!profile?.household_id) return
-    const ch = supabase.channel(`presence:${profile.household_id}`)
+    if (!profile?.active_household_id) return
+    const ch = supabase.channel(`presence:${profile.active_household_id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, () => load())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [profile?.household_id])
+  }, [profile?.active_household_id])
 
   return (
     <Ctx.Provider value={{ household, members, memberProfiles, presences, loading, reload: load }}>

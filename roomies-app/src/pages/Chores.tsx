@@ -52,8 +52,34 @@ export default function Chores() {
   }
 
   async function markDone(id: string) {
+    const doneAssignment = assignments.find(a => a.id === id)
+    const choreTitle = chores.find(c => c.id === doneAssignment?.chore_id)?.title ?? 'a chore'
+    const choreDifficulty = (chores.find(c => c.id === doneAssignment?.chore_id) as any)?.difficulty ?? 2
+
     await supabase.from('chore_assignments').update({ status: 'Completed', completed_at: new Date().toISOString() }).eq('id', id)
     if (profile) await supabase.from('profiles').update({ karma: (profile.karma ?? 100) + 10 }).eq('id', user!.id)
+
+    // Feature #2: Chore-Sync Anthems — signal Jukebox to queue BPM-matched playlist
+    supabase.from('cross_app_activity').insert({
+      user_id: user!.id,
+      app: 'roomies',
+      activity_type: 'chore_completed',
+      is_public: false,
+      payload: { chore_title: choreTitle, difficulty: choreDifficulty, bpm_hint: choreDifficulty * 30 + 60 },
+    }).then(() => {})
+
+    // Feature #8: Victory Fanfare — if all pending assignments are now done, signal celebration
+    const remaining = assignments.filter(a => a.id !== id && a.status === 'Pending')
+    if (remaining.length === 0) {
+      supabase.from('cross_app_activity').insert({
+        user_id: user!.id,
+        app: 'roomies',
+        activity_type: 'all_chores_done',
+        is_public: true,
+        payload: { household_id: household?.id, message: 'All chores complete! 🎉' },
+      }).then(() => {})
+    }
+
     loadAll()
   }
 

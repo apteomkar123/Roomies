@@ -116,7 +116,7 @@ export default function Dashboard() {
           <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 28, background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Roomies
           </div>
-          <div style={{ color: '#6B7280', fontSize: 14, fontWeight: 500 }}>{household?.title ?? 'Your Home'}</div>
+          <div style={{ color: '#6B7280', fontSize: 14, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
         </div>
         <AvatarHalo avatarUrl={profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
       </div>
