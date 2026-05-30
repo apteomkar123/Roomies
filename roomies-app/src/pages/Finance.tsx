@@ -62,6 +62,24 @@ export default function Finance() {
     if (!household) return
     const mySplitIds = splits.filter(s => s.debtor_id === user!.id).map(s => s.id)
     if (mySplitIds.length) await supabase.from('transaction_splits').update({ settled: true }).in('id', mySplitIds)
+
+    // Feature #13: Rent-Day Rewards — check if ALL household splits are now settled
+    const { data: remaining } = await supabase
+      .from('transaction_splits')
+      .select('id')
+      .eq('settled', false)
+      .in('transaction_id', transactions.map(t => t.id))
+      .limit(1)
+    if (!remaining?.length) {
+      supabase.from('cross_app_activity').insert({
+        user_id: user!.id,
+        app: 'roomies',
+        activity_type: 'all_bills_paid',
+        is_public: true,
+        payload: { household_id: household.id, message: 'All bills are paid! 🎉 Financial Freedom unlocked.' },
+      }).then(() => {})
+    }
+
     loadAll()
   }
 
@@ -100,7 +118,7 @@ export default function Finance() {
 
       {/* Debt minimizer summary */}
       {namedTransfers.length > 0 && (
-        <GlassPanel style={{ padding: 20, marginBottom: 20, border: '1.5px solid rgba(37,99,235,0.2)' }}>
+        <GlassPanel id="tut-finance" style={{ padding: 20, marginBottom: 20, border: '1.5px solid rgba(37,99,235,0.2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Settle Up</div>
             <button onClick={settleAll} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.12)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Mark My Debts Paid</button>

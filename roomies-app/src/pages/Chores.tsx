@@ -21,6 +21,20 @@ export default function Chores() {
   const [showAddChore, setShowAddChore] = useState(false)
   const [title, setTitle] = useState('')
   const [recurrence, setRecurrence] = useState<ChoreRecurrence>('Weekly')
+  const [nutritionBoostActive, setNutritionBoostActive] = useState(false)
+
+  // Feature #14: Nutritional BPM — if Hungry flagged a shortfall, sort high-difficulty chores first
+  useEffect(() => {
+    if (!user) return
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    supabase.from('cross_app_activity')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('activity_type', 'nutrition_shortfall')
+      .gte('created_at', since)
+      .limit(1)
+      .then(({ data }) => { if (data?.length) setNutritionBoostActive(true) })
+  }, [user])
 
   useEffect(() => {
     if (!household) return
@@ -124,7 +138,7 @@ export default function Chores() {
 
       {/* Rotation view for next 7 days */}
       {chores.length > 0 && (
-        <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+        <GlassPanel id="tut-rotation" style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>This Week's Rotation</div>
           {chores.map(chore => {
             const assignee = calcChoreAssignee(chore, memberProfiles)
@@ -149,8 +163,21 @@ export default function Chores() {
       {/* Pending assignments */}
       {assignments.length > 0 && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Pending Tasks</div>
-          {assignments.map(a => {
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Pending Tasks</div>
+            {nutritionBoostActive && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#E76F51', background: 'rgba(231,111,81,0.1)', borderRadius: 8, padding: '3px 8px' }}>
+                💪 Boost Mode — high-effort first
+              </div>
+            )}
+          </div>
+          {/* Feature #14: Sort high-difficulty chores first when nutrition shortfall detected */}
+          {[...assignments].sort((a, b) =>
+            nutritionBoostActive
+              ? ((chores.find(c => c.id === b.chore_id) as any)?.difficulty ?? 2) -
+                ((chores.find(c => c.id === a.chore_id) as any)?.difficulty ?? 2)
+              : 0
+          ).map(a => {
             const isMe = a.assigned_to === user?.id
             return (
               <div key={a.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -172,7 +199,7 @@ export default function Chores() {
 
       {/* Karma marketplace */}
       {marketplace.length > 0 && (
-        <GlassPanel style={{ padding: 20 }}>
+        <GlassPanel id="tut-marketplace" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Karma Marketplace</div>
           {marketplace.map(item => (
             <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>

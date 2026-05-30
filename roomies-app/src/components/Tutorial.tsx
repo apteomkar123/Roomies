@@ -1,207 +1,184 @@
-import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useTutorial } from '../context/TutorialContext'
 
-const STEPS = [
-  {
-    icon: '🏠',
-    title: 'Welcome to Roomies!',
-    isIntro: true,
-    quote: "Everyone skips tutorials, but you won't want to skip this one. You can do a lot with this app.",
-    features: [] as { icon: string; name: string; desc: string }[],
-  },
-  {
-    icon: '🟢',
-    title: 'Dashboard & Presence',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '🔮', name: 'Avatar Halo', desc: 'The glow color shows roommate status — Mint = Available, Purple = WFH, Blue = Sleeping, Coral = Away.' },
-      { icon: '🟢', name: 'Presence Selector', desc: 'Toggle your status. Setting "Away" automatically pauses your chore rotation.' },
-      { icon: '📢', name: 'Buzz Deck', desc: 'One-tap Trash or Quiet alerts — sends an instant notice to every roommate.' },
-    ],
-  },
-  {
-    icon: '⚙️',
-    title: 'Shared Logistics',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '🕐', name: 'Appliance Booker', desc: 'Hourly grid for shared resources like the washing machine. Claim your slot to avoid conflicts.' },
-      { icon: '🐾', name: 'Pet Tracker', desc: 'Log feeds, walks, and meds. Every action is timestamped with your name.' },
-      { icon: '🔐', name: 'Lockbox', desc: 'Store Wi-Fi codes, gate sequences, and other secrets. Masked by default — tap to reveal.' },
-    ],
-  },
-  {
-    icon: '✨',
-    title: 'Chores & Karma',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '🔄', name: 'Modulo Rotation', desc: 'Chores rotate fairly via a mathematical formula — no one gets stuck with the same task forever.' },
-      { icon: '🛒', name: 'Karma Marketplace', desc: "Auction a chore you can't do for Karma or cash. Claim others' auctions to earn bounties." },
-      { icon: '⭐', name: 'Karma System', desc: 'Earn +10 Karma for every completed chore. Your score lives on your profile.' },
-    ],
-  },
-  {
-    icon: '💰',
-    title: 'Finance',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '🧮', name: 'Debt Minimizer', desc: 'Greedy Matching algorithm calculates the minimum transfers needed to settle all house debts.' },
-      { icon: '✅', name: 'One-Tap Settlement', desc: 'Mark your debts as paid instantly — no more awkward reminders.' },
-    ],
-  },
-  {
-    icon: '🏡',
-    title: 'Guests & Maintenance',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '👥', name: 'Guest Logs', desc: 'Log visitor stays with arrival and departure dates.' },
-      { icon: '💸', name: 'Overstay Surcharge', desc: 'Guests past the agreed limit automatically trigger a utility surcharge calculation.' },
-      { icon: '🔧', name: 'Maintenance Tickets', desc: 'Report broken items with a photo. Stored in the Property Vault.' },
-    ],
-  },
-  {
-    icon: '💬',
-    title: 'Communication & Shopping',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '📋', name: 'Notices', desc: 'Post Memos, Landlord Notices, or Buzz Alerts. Read receipts show who has seen each one.' },
-      { icon: '🛍️', name: 'Shopping List', desc: 'Add items with quantity. Flag urgent purchases so they stand out.' },
-    ],
-  },
-  {
-    icon: '🧭',
-    title: 'Navigation',
-    isIntro: false,
-    quote: '',
-    features: [
-      { icon: '💫', name: 'Floating Capsule Nav', desc: 'The bottom bar gives instant access to every feature — Dashboard, Chores, Finance, and more.' },
-    ],
-  },
+interface Step {
+  route: string
+  elementId: string
+  title: string
+  desc: string
+  side: 'top' | 'bottom'
+}
+
+const STEPS: Step[] = [
+  { route: '/', elementId: 'tut-presence', title: 'Your Presence', side: 'bottom',
+    desc: 'Tap a status to broadcast it to your roommates. Setting "Away" automatically pauses your chore rotation.' },
+  { route: '/', elementId: 'tut-buzz', title: 'Buzz Deck', side: 'top',
+    desc: 'One tap fires a Trash or Quiet Hours alert to everyone in the house instantly.' },
+  { route: '/', elementId: 'tut-appliance', title: 'Appliance Booker', side: 'top',
+    desc: 'Claim hourly slots for shared appliances. The colour-coded grid shows exactly who\'s booked what.' },
+  { route: '/', elementId: 'tut-pets', title: 'Pet Tracker', side: 'top',
+    desc: 'Log feeds, walks, and meds. Every action is timestamped with your name so nothing gets missed.' },
+  { route: '/', elementId: 'tut-lockbox', title: 'Property Lockbox', side: 'top',
+    desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap the eye icon to reveal secrets.' },
+  { route: '/', elementId: 'tut-navbar', title: 'Navigation', side: 'top',
+    desc: 'The floating capsule gives instant access to Chores, Finance, Notices, Bookings, Maintenance, and more.' },
+  { route: '/chores', elementId: 'tut-rotation', title: 'Fair Chore Rotation', side: 'bottom',
+    desc: 'A modulo algorithm rotates chores so no one is stuck with the same task. Complete one to earn +10 Karma.' },
+  { route: '/chores', elementId: 'tut-marketplace', title: 'Karma Marketplace', side: 'top',
+    desc: 'Too busy? Auction a chore for Karma or cash. Claim others\' auctions and earn the bounty.' },
+  { route: '/finance', elementId: 'tut-finance', title: 'Debt Minimizer', side: 'bottom',
+    desc: 'Greedy Matching calculates the fewest transfers to settle all house debts. One tap marks your share paid.' },
 ]
 
-export default function Tutorial() {
-  const { user, refreshProfile } = useAuth()
-  const [step, setStep] = useState(0)
+const TOOLTIP_W = 290
 
-  const complete = async () => {
-    if (user) {
-      await supabase.from('profiles').update({ has_completed_roomies_tutorial: true }).eq('id', user.id)
-      await refreshProfile()
-    }
-  }
+export default function Tutorial() {
+  const { active, step, total, next, skip } = useTutorial()
+  const navigate = useNavigate()
+  const [rect, setRect] = useState<DOMRect | null>(null)
 
   const current = STEPS[step]
-  const isLast = step === STEPS.length - 1
+
+  // Navigate to correct page for this step
+  useEffect(() => {
+    if (!active) return
+    setRect(null)
+    navigate(current.route)
+  }, [step, active])
+
+  // Find element and measure it
+  useEffect(() => {
+    if (!active) return
+    setRect(null)
+    const find = () => {
+      const el = document.getElementById(current.elementId)
+      if (el) { setRect(el.getBoundingClientRect()); return true }
+      return false
+    }
+    if (!find()) {
+      const t = setTimeout(find, 350)
+      return () => clearTimeout(t)
+    }
+  }, [step, active])
+
+  // Re-measure on resize
+  useEffect(() => {
+    if (!active || !rect) return
+    const update = () => {
+      const el = document.getElementById(current.elementId)
+      if (el) setRect(el.getBoundingClientRect())
+    }
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [step, active, rect])
+
+  if (!active) return null
+
+  const pad = 10
+
+  // Spotlight style — box-shadow creates the dark vignette outside the element
+  const spotStyle: React.CSSProperties = rect ? {
+    position: 'fixed',
+    top: rect.top - pad,
+    left: rect.left - pad,
+    width: rect.width + pad * 2,
+    height: rect.height + pad * 2,
+    borderRadius: 18,
+    pointerEvents: 'none',
+    boxShadow: '0 0 0 9999px rgba(0,0,0,0.68), 0 0 0 2.5px rgba(139,92,246,0.9)',
+    zIndex: 1001,
+    animation: 'tutGlow 2s ease-in-out infinite',
+  } : {}
+
+  // Tooltip position
+  let tipTop = 0
+  let tipLeft = 0
+  if (rect) {
+    const gap = 18
+    if (current.side === 'bottom') {
+      tipTop = rect.bottom + pad + gap
+    } else {
+      tipTop = rect.top - pad - gap - 180
+    }
+    tipLeft = Math.max(12, Math.min(
+      rect.left + rect.width / 2 - TOOLTIP_W / 2,
+      window.innerWidth - TOOLTIP_W - 12
+    ))
+    // Clamp vertically
+    if (tipTop < 12) tipTop = rect.bottom + pad + gap
+    if (tipTop > window.innerHeight - 180) tipTop = rect.top - pad - gap - 180
+    tipTop = Math.max(12, tipTop)
+  }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      background: 'rgba(0,0,0,0.45)',
-      backdropFilter: 'blur(6px)',
-      WebkitBackdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 20,
-    }}>
-      <div style={{
-        width: '100%', maxWidth: 480,
-        background: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(24px) saturate(1.8)',
-        WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-        border: '1px solid rgba(255,255,255,0.65)',
-        borderRadius: 28,
-        boxShadow: '0 24px 64px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.8)',
-        padding: '32px 28px',
-        maxHeight: '88vh',
-        overflowY: 'auto',
-      }}>
-        {/* Progress dots */}
-        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', marginBottom: 28 }}>
-          {STEPS.map((_, i) => (
-            <div key={i} style={{
-              width: i === step ? 22 : 6, height: 6, borderRadius: 999,
-              background: i === step
-                ? 'linear-gradient(90deg,#6366f1,#8b5cf6)'
-                : i < step ? '#a5b4fc' : 'rgba(0,0,0,0.1)',
-              transition: 'all 0.3s',
-            }} />
-          ))}
-        </div>
+    <>
+      <style>{`
+        @keyframes tutGlow {
+          0%,100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.68), 0 0 0 2.5px rgba(139,92,246,0.9); }
+          50%      { box-shadow: 0 0 0 9999px rgba(0,0,0,0.68), 0 0 0 4px rgba(99,102,241,1), 0 0 24px rgba(139,92,246,0.5); }
+        }
+        @keyframes tutIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)  scale(1); }
+        }
+      `}</style>
 
-        {/* Icon + title */}
-        <div style={{ textAlign: 'center', marginBottom: current.isIntro ? 0 : 24 }}>
-          <div style={{ fontSize: 56, marginBottom: 12, lineHeight: 1 }}>{current.icon}</div>
-          <h2 style={{ fontWeight: 900, fontSize: 24, margin: 0, letterSpacing: '-0.5px' }}>{current.title}</h2>
-        </div>
+      {/* Click-to-advance backdrop */}
+      <div onClick={next} style={{ position: 'fixed', inset: 0, zIndex: 1000, cursor: 'pointer' }} />
 
-        {/* Intro quote */}
-        {current.isIntro && (
-          <div style={{
-            margin: '20px 0 28px',
-            padding: '18px 20px',
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.07), rgba(139,92,246,0.07))',
-            borderLeft: '3px solid #6366f1',
-            borderRadius: '0 14px 14px 0',
-          }}>
-            <p style={{ margin: 0, color: '#374151', fontSize: 15, fontStyle: 'italic', lineHeight: 1.65 }}>
-              "{current.quote}"
-            </p>
-          </div>
-        )}
+      {/* Spotlight ring around target */}
+      {rect && <div style={spotStyle} />}
 
-        {/* Feature cards */}
-        {current.features.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-            {current.features.map(f => (
-              <div key={f.name} style={{
-                display: 'flex', gap: 14, alignItems: 'flex-start',
-                background: 'rgba(255,255,255,0.65)',
-                border: '1px solid rgba(255,255,255,0.55)',
-                borderRadius: 16, padding: '14px 16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-              }}>
-                <span style={{ fontSize: 26, flexShrink: 0, lineHeight: 1 }}>{f.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{f.name}</div>
-                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55 }}>{f.desc}</div>
-                </div>
-              </div>
+      {/* Tooltip card */}
+      {rect && (
+        <div style={{
+          position: 'fixed', top: tipTop, left: tipLeft, width: TOOLTIP_W,
+          zIndex: 1002, pointerEvents: 'none',
+          background: 'rgba(255,255,255,0.96)',
+          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.7)',
+          borderRadius: 22,
+          padding: '18px 20px',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.22), 0 0 0 1.5px rgba(99,102,241,0.18)',
+          animation: 'tutIn 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+        }}>
+          {/* Progress bar */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+            {STEPS.map((_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 3, borderRadius: 999,
+                background: i < step ? '#a5b4fc' : i === step ? 'linear-gradient(90deg,#6366f1,#8b5cf6)' : 'rgba(0,0,0,0.08)',
+                transition: 'background 0.3s',
+              }} />
             ))}
           </div>
-        )}
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          {!isLast ? (
-            <>
-              <button
-                onClick={complete}
-                style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.6)', background: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: '#9CA3AF', fontFamily: 'inherit' }}
-              >
-                Skip
-              </button>
-              <button
-                onClick={() => setStep(s => s + 1)}
-                style={{ flex: 2, padding: '12px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', cursor: 'pointer', fontWeight: 700, fontSize: 15, color: '#fff', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
-              >
-                Next →
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={complete}
-              style={{ flex: 1, padding: '14px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #10B981, #34D399)', cursor: 'pointer', fontWeight: 700, fontSize: 15, color: '#fff', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-            >
-              Let's go! 🚀
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#111827', marginBottom: 6 }}>{current.title}</div>
+          <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.6 }}>{current.desc}</div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, pointerEvents: 'all' }}>
+            <button onClick={(e) => { e.stopPropagation(); skip() }}
+              style={{ background: 'none', border: 'none', color: '#9CA3AF', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Skip tour
             </button>
-          )}
+            <button onClick={(e) => { e.stopPropagation(); next() }}
+              style={{ padding: '8px 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 12px rgba(99,102,241,0.4)' }}>
+              {step === total - 1 ? "Let's go! 🚀" : 'Next →'}
+            </button>
+          </div>
+          <div style={{ textAlign: 'center', fontSize: 11, color: '#D1D5DB', marginTop: 8 }}>
+            tap anywhere to continue · {step + 1} of {total}
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* Loading state while finding element */}
+      {!rect && (
+        <div style={{ position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 1002, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(20px)', borderRadius: 999, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: '#6366f1', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+          Loading tutorial…
+        </div>
+      )}
+    </>
   )
 }

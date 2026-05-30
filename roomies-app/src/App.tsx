@@ -4,6 +4,7 @@ import type { ReactElement } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
 import { HouseholdProvider } from './context/HouseholdContext'
+import { TutorialProvider } from './context/TutorialContext'
 import Tutorial from './components/Tutorial'
 import Onboarding   from './pages/Onboarding'
 import Dashboard    from './pages/Dashboard'
@@ -83,15 +84,15 @@ function AppRoutes() {
 
   const authed = !!session
   const hasHousehold = !!profile?.active_household_id
-  const needsTutorial = authed && hasHousehold && profile?.has_completed_roomies_tutorial === false
 
   // guard: redirect to /welcome if not authed or no household yet
   const guard = (el: ReactElement) => authed && hasHousehold ? el : <Navigate to="/welcome" replace />
 
   return (
     <HouseholdProvider>
-      {needsTutorial && <Tutorial />}
-      <Routes>
+      <TutorialProvider>
+        <Tutorial />
+        <Routes>
         <Route path="/welcome"     element={<Onboarding />} />
         <Route path="/"            element={guard(<Dashboard />)} />
         <Route path="/chores"      element={guard(<Chores />)} />
@@ -105,7 +106,8 @@ function AppRoutes() {
         <Route path="/pets"        element={guard(<Pets />)} />
         <Route path="/more"        element={guard(<More />)} />
         <Route path="*"            element={<Navigate to={authed && hasHousehold ? '/' : '/welcome'} replace />} />
-      </Routes>
+        </Routes>
+      </TutorialProvider>
     </HouseholdProvider>
   )
 }

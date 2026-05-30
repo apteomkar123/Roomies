@@ -122,7 +122,7 @@ export default function Dashboard() {
       </div>
 
       {/* Presence selector */}
-      <GlassPanel style={{ padding: '14px 16px', marginBottom: 20 }}>
+      <GlassPanel id="tut-presence" style={{ padding: '14px 16px', marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>My Status</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {PRESENCE_OPTIONS.map(s => (
@@ -150,7 +150,7 @@ export default function Dashboard() {
       )}
 
       {/* Widget 1: Buzz Deck */}
-      <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+      <GlassPanel id="tut-buzz" style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>One-Tap Buzz</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <button onClick={() => sendBuzz('trash')} disabled={buzzing} style={{ padding: '20px 16px', borderRadius: 18, border: '1.5px solid rgba(245,158,11,0.3)', cursor: 'pointer', background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.25))', fontFamily: 'inherit', transition: 'all 0.2s', transform: buzzing ? 'scale(0.97)' : 'scale(1)' }}>
@@ -167,7 +167,7 @@ export default function Dashboard() {
       </GlassPanel>
 
       {/* Widget 2: Appliance Booker */}
-      <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+      <GlassPanel id="tut-appliance" style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Appliance Booker</div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
@@ -213,7 +213,7 @@ export default function Dashboard() {
       </GlassPanel>
 
       {/* Widget 3: Pet Tracker */}
-      <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+      <GlassPanel id="tut-pets" style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Pet Care</div>
           <input value={petName} onChange={e => setPetName(e.target.value)} style={{ background: 'none', border: 'none', fontWeight: 800, fontSize: 14, color: '#374151', outline: 'none', width: 100, textAlign: 'right', fontFamily: 'inherit' }} />
@@ -232,7 +232,7 @@ export default function Dashboard() {
       </GlassPanel>
 
       {/* Widget 4: Lockbox */}
-      <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+      <GlassPanel id="tut-lockbox" style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Property Lockbox</div>
         {lockbox.length === 0 && <div style={{ color: '#9CA3AF', fontSize: 14 }}>No secrets stored yet. Add them in the Lockbox page.</div>}
         {lockbox.map(item => {

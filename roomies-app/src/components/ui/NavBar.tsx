@@ -16,7 +16,7 @@ export default function NavBar() {
   const path = location.pathname
 
   return (
-    <nav className="nav-capsule" style={{ width: 'calc(100% - 32px)', maxWidth: 600 }}>
+    <nav id="tut-navbar" className="nav-capsule" style={{ width: 'calc(100% - 32px)', maxWidth: 600 }}>
       {NAV.map(item => (
         <button
           key={item.path}

@@ -15,6 +15,7 @@ export default function More() {
     if (!user) return
     await supabase.from('profiles').update({ has_completed_roomies_tutorial: false }).eq('id', user.id)
     await refreshProfile()
+    // TutorialContext watches profile and resets step automatically
   }
 
   const PAGES = [

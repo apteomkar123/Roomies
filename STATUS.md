@@ -14,7 +14,7 @@
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
 - Input font-size 16px + removed backdrop-filter from input element + added -webkit-appearance:none and GPU layer to fix iOS Safari cursor displacement
 - "Sync your AppWare apps!" tagline above the AppWare sign-in button
-- **First-time tutorial** — 8-step interactive walkthrough (Dashboard, Logistics, Chores/Karma, Finance, Guests/Maintenance, Communication, Shopping, Nav) shown once after onboarding; skip or finish both mark it done; "Rerun Tutorial" button in More/Settings reruns it anytime
+- **First-time spotlight tutorial** — 9-step live overlay that navigates to each feature page and spotlights the real UI element with a pulsing glow ring and animated tooltip; tap anywhere or press Next to advance; Skip/Finish both mark it done; "Rerun Tutorial" in More page resets it anytime
 
 ### Onboarding
 - 6-step flow (Welcome → Profile → Household → Rules → Review → Sign)
