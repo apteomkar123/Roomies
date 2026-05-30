@@ -38,20 +38,26 @@ declare
   final_name text;
   n         int := 0;
 begin
-  base_name := coalesce(
-    new.raw_user_meta_data->>'username',
-    new.raw_user_meta_data->>'full_name',
-    split_part(coalesce(new.email, new.id::text), '@', 1)
-  );
-  final_name := base_name;
-  -- Append incrementing suffix until username is unique
-  while exists (select 1 from profiles where username = final_name) loop
-    n := n + 1;
-    final_name := base_name || n;
-  end loop;
-  insert into profiles (id, username)
-  values (new.id, final_name)
-  on conflict (id) do nothing;
+  -- Wrap in exception block so any failure is swallowed — the auth.users
+  -- INSERT must never be aborted by this trigger. The client creates the
+  -- profile row on first sign-in if the trigger insert was silently skipped.
+  begin
+    base_name := coalesce(
+      new.raw_user_meta_data->>'username',
+      new.raw_user_meta_data->>'full_name',
+      split_part(coalesce(new.email, new.id::text), '@', 1)
+    );
+    final_name := base_name;
+    while exists (select 1 from profiles where username = final_name) loop
+      n := n + 1;
+      final_name := base_name || n;
+    end loop;
+    insert into profiles (id, username)
+    values (new.id, final_name)
+    on conflict (id) do nothing;
+  exception when others then
+    null; -- profile will be created client-side on first SIGNED_IN event
+  end;
   return new;
 end;
 $$;

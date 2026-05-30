@@ -14,3 +14,4 @@ Sign in with AppWare takes the user to Site not found. it should be routing to a
 The iOS cursor on the sign in page is still being really weird.
 When I try to make an account, I get a console error: Failed to load resource https://qugmexzeqftqydrbecxd.supabase.co/auth/v1/signup: the server responded with a status of 500 (). (API keys are set in Netlify env vars.)
 The tutorial shouldn't just be cards, but should take the user through each feature by having them tap different places and showing them the feature with a little message next to it.
+I'm still getting that exact same error as before when I try to create an account with Roomies (500 on /auth/v1/signup)

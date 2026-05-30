@@ -26,9 +26,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false)
 
-  const fetchProfile = async (uid: string) => {
+  const fetchProfile = async (uid: string, email?: string) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', uid).single()
-    if (data) setProfile(data as Profile)
+    if (data) {
+      setProfile(data as Profile)
+      return
+    }
+    // Profile missing — DB trigger either failed silently or hasn't run yet.
+    // Create the row client-side so onboarding can proceed.
+    if (email) {
+      let username = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || uid.slice(0, 8)
+      const { error } = await supabase.from('profiles').insert({ id: uid, username })
+      if (error?.code === '23505') {
+        // Username already taken — append random suffix
+        username = `${username}_${Math.random().toString(36).slice(2, 6)}`
+        await supabase.from('profiles').insert({ id: uid, username }).catch(() => {})
+      }
+      const { data: created } = await supabase.from('profiles').select('*').eq('id', uid).single()
+      if (created) setProfile(created as Profile)
+    }
   }
 
   useEffect(() => {
@@ -41,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s)
       setUser(s?.user ?? null)
       if (event === 'PASSWORD_RECOVERY') setNeedsPasswordReset(true)
-      if (s?.user) fetchProfile(s.user.id).finally(() => setLoading(false))
+      if (s?.user) fetchProfile(s.user.id, s.user.email ?? undefined).finally(() => setLoading(false))
       else { setProfile(null); setLoading(false) }
     })
 
@@ -96,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id)
+    if (user) await fetchProfile(user.id, user.email ?? undefined)
   }
 
   return (

@@ -8,7 +8,7 @@
 - Email / password sign-up and sign-in
 - Google and Apple OAuth handled by the AppWare portal (removed from this app's sign-in screen)
 - **AppWare SSO** — "Sign in with AppWare" button redirects to the AppWare auth portal with the full current URL as `redirect_to`, so users are returned to the exact page they came from after authenticating; incoming hash tokens are automatically injected as a Supabase session
-- Auto-profile creation on sign-up (Postgres trigger, handles email/Google/AppWare users; auto-increments username suffix on collision to prevent "Database error saving new user")
+- Auto-profile creation on sign-up — trigger wrapped in EXCEPTION block so any DB error is swallowed and never aborts the auth.users insert; client-side fallback in AuthContext creates the profile row on SIGNED_IN if the trigger silently skipped it
 - Session persistence + auto token refresh
 - Sign out
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
@@ -92,10 +92,22 @@
 - Karma counter (default 100, +10 per completed chore, +bounty per claimed marketplace task)
 - Away toggle (removes user from chore rotation)
 
+### AppWare Ecosystem Features
+- **#2 Chore-Sync Anthems (write)** — `markDone()` in Chores.tsx writes a `chore_completed` event to `cross_app_activity` with `difficulty` and a `bpm_hint` (difficulty × 30 + 60) so Jukebox can queue a BPM-matched playlist
+- **#8 Victory Fanfare (write)** — after marking the last pending chore done, writes `all_chores_done` to `cross_app_activity` (public, visible to household members); Jukebox can use this to trigger a celebration playlist
+- **#13 Rent-Day Rewards (write)** — after "Mark My Debts Paid" settles all splits, Finance.tsx checks if any unsettled splits remain for the household; if zero remain, writes `all_bills_paid` to `cross_app_activity`
+- **#14 Nutritional BPM (read + sort)** — Chores.tsx checks `cross_app_activity` for `nutrition_shortfall` events from Hungry (past 24h); if found, shows a "💪 Boost Mode" badge and sorts pending chore assignments with highest difficulty first
+
+### Schema Migration (from per-app to unified AppWare schema)
+- `households.title` renamed to `households.name` — all Roomies queries updated
+- `profiles.household_id` replaced by `profiles.active_household_id` — HouseholdContext, App.tsx, Onboarding, More, Dashboard all updated
+- `agreement_signatures` insert in Onboarding now uses `profile.active_household_id`
+- New profile columns added: `has_completed_roomies_tutorial`, `karma`, `away`, `vibe_tags`, `favorite_genres`, `hungry_settings`
+
 ### Database
-- Full Postgres schema (18 tables, all enums, all foreign keys)
-- Row-Level Security on every table, scoped to household membership
-- `is_household_member()` helper function
+- Full Postgres schema (all tables, all enums, all foreign keys) — now defined in unified `appware_unified_schema.sql` at AppWare root
+- Row-Level Security on every table, scoped to household membership via `is_household_member()` SECURITY DEFINER function
+- `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
 
 ---
