@@ -23,10 +23,11 @@ create table if not exists profiles (
   id           uuid primary key references auth.users(id) on delete cascade,
   username     text not null unique,
   avatar_url   text,
-  karma               integer not null default 100 check (karma >= 0),
-  active_household_id uuid references households(id) on delete set null,
-  away                boolean not null default false,
-  updated_at   timestamptz not null default now()
+  karma                          integer not null default 100 check (karma >= 0),
+  active_household_id            uuid references households(id) on delete set null,
+  away                           boolean not null default false,
+  has_completed_roomies_tutorial boolean not null default false,
+  updated_at                     timestamptz not null default now()
 );
 
 -- Auto-create profile on sign-up (handles email, Google, and AppWare SSO users)
@@ -386,3 +387,9 @@ create policy "lockbox_all"          on lockbox              for all   using (is
 create policy "storage_select" on storage.objects for select using (bucket_id = 'roomies-property-vault');
 create policy "storage_insert" on storage.objects for insert with check (bucket_id = 'roomies-property-vault' and auth.uid() is not null);
 create policy "storage_delete" on storage.objects for delete using (bucket_id = 'roomies-property-vault' and auth.uid() is not null);
+
+-- ──────────────────────────────────────────────────────────
+-- MIGRATION: add tutorial tracking (run on existing projects)
+-- ──────────────────────────────────────────────────────────
+alter table public.profiles
+  add column if not exists has_completed_roomies_tutorial boolean not null default false;

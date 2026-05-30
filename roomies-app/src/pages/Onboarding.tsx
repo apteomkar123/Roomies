@@ -50,7 +50,7 @@ export default function Onboarding() {
   const [maxGuests, setMaxGuests] = useState(3)
 
   // Step 4B state
-  const [joinHousehold, setJoinHousehold] = useState<{ id: string; title: string; agreement: any } | null>(null)
+  const [joinHousehold, setJoinHousehold] = useState<{ id: string; name: string; agreement: any } | null>(null)
 
   // Step 5 (swipe)
   const [swiped, setSwiped] = useState(false)
@@ -105,11 +105,11 @@ export default function Onboarding() {
   async function handleCheckInvite(code: string) {
     setInviteInput(code)
     if (code.length !== 6) { setCodeValid(null); return }
-    const { data } = await supabase.from('households').select('id,title').eq('invite_code', code.toUpperCase()).single()
+    const { data } = await supabase.from('households').select('id,name').eq('invite_code', code.toUpperCase()).single()
     if (data) {
       setCodeValid(true)
       const { data: ag } = await supabase.from('coliving_agreements').select('*').eq('household_id', data.id).single()
-      setJoinHousehold({ id: data.id, title: data.title, agreement: ag })
+      setJoinHousehold({ id: data.id, name: data.name, agreement: ag })
     } else {
       setCodeValid(false)
     }
@@ -127,7 +127,7 @@ export default function Onboarding() {
     const invite = genInviteCode()
     const { data: hh, error } = await supabase
       .from('households')
-      .insert({ title: `${username}'s Home`, invite_code: invite })
+      .insert({ name: `${username}'s Home`, invite_code: invite })
       .select().single()
     if (error || !hh) { setLoading(false); return setError(error?.message ?? 'Failed') }
 
@@ -140,7 +140,7 @@ export default function Onboarding() {
         guest_overstay_rules: `Max ${maxGuests} consecutive nights`,
       }),
       supabase.from('household_members').insert({ household_id: hh.id, profile_id: user!.id, role: 'Administrator' }),
-      supabase.from('profiles').update({ household_id: hh.id }).eq('id', user!.id),
+      supabase.from('profiles').update({ active_household_id: hh.id }).eq('id', user!.id),
     ])
     await refreshProfile()
     setLoading(false)
@@ -153,7 +153,7 @@ export default function Onboarding() {
     setLoading(true)
     await Promise.all([
       supabase.from('household_members').insert({ household_id: joinHousehold.id, profile_id: user!.id, role: 'Tenant' }),
-      supabase.from('profiles').update({ household_id: joinHousehold.id }).eq('id', user!.id),
+      supabase.from('profiles').update({ active_household_id: joinHousehold.id }).eq('id', user!.id),
     ])
     await refreshProfile()
     setLoading(false)
@@ -197,7 +197,7 @@ export default function Onboarding() {
     if (swiped) return
     setSwiped(true)
     await supabase.from('agreement_signatures').upsert({
-      household_id: profile!.household_id,
+      household_id: profile!.active_household_id,
       user_id: user!.id,
     })
     setTimeout(() => navigate('/'), 800)
@@ -235,6 +235,8 @@ export default function Onboarding() {
               Roomies
             </div>
             <p style={{ color: '#6B7280', fontSize: 15, marginBottom: 32 }}>Your co-living command center</p>
+
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#8B5CF6', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 10px' }}>Sync your AppWare apps!</p>
 
             <button
               onClick={signInWithAppWare}
@@ -340,7 +342,7 @@ export default function Onboarding() {
                 onChange={e => handleCheckInvite(e.target.value)}
                 style={{ textTransform: 'uppercase', letterSpacing: '0.2em', textAlign: 'center', fontSize: 20, fontWeight: 800, marginBottom: codeValid === true ? 14 : 0 }}
               />
-              {codeValid === true && <button className="btn-mint" onClick={handleJoin}>Join "{joinHousehold?.title}"</button>}
+              {codeValid === true && <button className="btn-mint" onClick={handleJoin}>Join "{joinHousehold?.name}"</button>}
               {codeValid === false && <div style={{ color: '#E11D48', fontSize: 13, fontWeight: 600, marginTop: 8 }}>Code not found. Check with your roommate.</div>}
             </GlassPanel>
           </div>

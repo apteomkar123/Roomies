@@ -55,8 +55,9 @@
     transition: all 0.2s;
     outline: none;
     width: 100%;
-    backdrop-filter: blur(8px);
     font-family: inherit;
+    -webkit-appearance: none;
+    transform: translateZ(0);
   }
   .glass-input:focus {
     background: rgba(255,255,255,0.25);

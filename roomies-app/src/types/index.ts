@@ -9,7 +9,7 @@ export type PetAction = 'Morning Feed' | 'Evening Feed' | 'Daily Walk' | 'Medica
 
 export interface Household {
   id: string
-  title: string
+  name: string
   invite_code: string
   created_at: string
 }
@@ -19,9 +19,10 @@ export interface Profile {
   username: string
   avatar_url: string | null
   karma: number
-  household_id: string | null
+  active_household_id: string | null
   away: boolean
   updated_at: string
+  has_completed_roomies_tutorial?: boolean
 }
 
 export interface HouseholdMember {

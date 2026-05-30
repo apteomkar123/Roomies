@@ -12,7 +12,9 @@
 - Session persistence + auto token refresh
 - Sign out
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
-- Input font-size bumped to 16px to prevent iOS Safari auto-zoom on focus (fixes cursor appearing outside the field)
+- Input font-size 16px + removed backdrop-filter from input element + added -webkit-appearance:none and GPU layer to fix iOS Safari cursor displacement
+- "Sync your AppWare apps!" tagline above the AppWare sign-in button
+- **First-time tutorial** — 8-step interactive walkthrough (Dashboard, Logistics, Chores/Karma, Finance, Guests/Maintenance, Communication, Shopping, Nav) shown once after onboarding; skip or finish both mark it done; "Rerun Tutorial" button in More/Settings reruns it anytime
 
 ### Onboarding
 - 6-step flow (Welcome → Profile → Household → Rules → Review → Sign)
