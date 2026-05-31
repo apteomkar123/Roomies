@@ -17,3 +17,5 @@ The tutorial shouldn't just be cards, but should take the user through each feat
 I'm still getting that exact same error as before when I try to create an account with Roomies (500 on /auth/v1/signup)
 I emptied .gitignore, I wanted all files and dependencies to follow me from machine to machine.
 Netlify build error: #L52-L58 shows TypeScript error TS2551 because supabase.from('profiles').insert(...) returns a PostgrestFilterBuilder, which does not expose a .catch() method. Chaining .catch on the awaited call therefore fails the build.
+Making an account gives the same database save error as it has been.
+Sigining with  AppWare does not sign me into the app, it just brings right back to the log in screen.

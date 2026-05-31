@@ -1,3 +1,38 @@
+SESSION LOG — 2026-05-31
+========================
+
+BUGS FIXED
+----------
+1. Signup gives "Database error saving new user" (500 on /auth/v1/signup)
+   Root cause: supabase/migrations/001_init.sql trigger had no exception handler.
+   Any username conflict (e.g. email prefix already taken) caused the profile
+   INSERT to fail, propagating the error up through the trigger, rolling back
+   the entire auth.users row, and returning HTTP 500.
+   Fix: Created supabase/migrations/002_fix_trigger.sql — replaces the function
+   with an exception-wrapped version that strips invalid chars from the base
+   username, deduplicates with numeric suffixes, and swallows all errors so the
+   auth.users INSERT always succeeds. Profile is created client-side on first
+   SIGNED_IN if the trigger was skipped.
+   IMPORTANT: Run 002_fix_trigger.sql in the Supabase SQL Editor to apply.
+
+2. AppWare SSO redirects back to login screen instead of signing in
+   Root cause: Race condition in AuthContext.tsx. onAuthStateChange fires
+   INITIAL_SESSION (no session yet) before supabase.auth.setSession() resolves,
+   calling setLoading(false) with no user → app renders unauthenticated →
+   <Navigate to="/welcome"> fires. The subsequent SIGNED_IN event fires after
+   the redirect has already happened.
+   Fix: Detect the hash access_token BEFORE subscribing to onAuthStateChange.
+   The pendingSSO flag skips the loading=false call for INITIAL_SESSION when
+   tokens are about to be injected, keeping the Spinner up until SIGNED_IN
+   fires and the profile is loaded.
+   File changed: src/context/AuthContext.tsx
+
+UNABLE TO DO
+------------
+None. All items in Changes.md were implemented.
+
+----------------
+
 SESSION LOG — 2026-05-30
 ========================
 

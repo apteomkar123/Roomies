@@ -51,6 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 5000)
 
+    // Detect AppWare SSO tokens in the hash BEFORE subscribing so the
+    // INITIAL_SESSION "no user" event doesn't set loading=false and bounce
+    // the user back to the login screen before setSession resolves.
+    const hash = window.location.hash
+    const pendingSSO = hash.includes('access_token=')
+
     // Must subscribe before getSession — in Supabase v2 PKCE, onAuthStateChange fires
     // INITIAL_SESSION which triggers the URL code exchange for OAuth callbacks.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
@@ -58,13 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s)
       setUser(s?.user ?? null)
       if (event === 'PASSWORD_RECOVERY') setNeedsPasswordReset(true)
-      if (s?.user) fetchProfile(s.user.id, s.user.email ?? undefined).finally(() => setLoading(false))
-      else { setProfile(null); setLoading(false) }
+      if (s?.user) {
+        fetchProfile(s.user.id, s.user.email ?? undefined).finally(() => setLoading(false))
+      } else if (!pendingSSO || event !== 'INITIAL_SESSION') {
+        // Skip the no-user loading resolution if SSO tokens are about to be injected
+        setProfile(null); setLoading(false)
+      }
     })
 
-    // AppWare SSO: if redirected back from the AppWare portal with hash tokens, inject session
-    const hash = window.location.hash
-    if (hash.includes('access_token=')) {
+    // AppWare SSO: inject the hash tokens into the Supabase session
+    if (pendingSSO) {
       const params = new URLSearchParams(hash.substring(1))
       const at = params.get('access_token')
       const rt = params.get('refresh_token')
