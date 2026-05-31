@@ -92,6 +92,11 @@
 - Karma counter (default 100, +10 per completed chore, +bounty per claimed marketplace task)
 - Away toggle (removes user from chore rotation)
 
+### Profile Photos
+- **AppWare Global Photo** — Upload via "AppWare Photo" button in More page profile card; syncs across all apps
+- **Roomies-specific Photo** — Upload via "Roomies Photo" button in More page profile card; overrides global photo only in Roomies
+- **Avatar display** — Profile card in More page and Dashboard header now show roomies_avatar_url ?? avatar_url with initials fallback
+
 ### AppWare Ecosystem Features
 - **#2 Chore-Sync Anthems (write)** — `markDone()` in Chores.tsx writes a `chore_completed` event to `cross_app_activity` with `difficulty` and a `bpm_hint` (difficulty × 30 + 60) so Jukebox can queue a BPM-matched playlist
 - **#8 Victory Fanfare (write)** — after marking the last pending chore done, writes `all_chores_done` to `cross_app_activity` (public, visible to household members); Jukebox can use this to trigger a celebration playlist
