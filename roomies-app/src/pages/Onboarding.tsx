@@ -6,6 +6,8 @@ import type { CoLivingAgreement } from '../types'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 
+type PhotoDialog = 'import-or-new' | 'apply-all' | null
+
 const AVATAR_OPTIONS = [
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia',
@@ -38,6 +40,11 @@ export default function Onboarding() {
   // Step 2 state
   const [username, setUsername] = useState(profile?.username ?? '')
   const [selectedAvatar, setSelectedAvatar] = useState(profile?.avatar_url ?? AVATAR_OPTIONS[0])
+  const [customPhotoUrl, setCustomPhotoUrl] = useState<string | null>(null) // uploaded photo
+  const [photoDialog, setPhotoDialog] = useState<PhotoDialog>(null)
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const photoFileRef = useRef<HTMLInputElement>(null)
 
   // Step 3 state
   const [path, setPath] = useState<'create' | 'join' | null>(null)
@@ -87,15 +94,94 @@ export default function Onboarding() {
     setResetSent(true)
   }
 
+  // ── Step 2: Photo upload helpers ─────────────────────────────
+  function handlePhotoButton() {
+    if (profile?.avatar_url) {
+      setPhotoDialog('import-or-new')
+    } else {
+      photoFileRef.current?.click()
+    }
+  }
+
+  async function uploadPhoto(file: File, type: 'global' | 'roomies'): Promise<string | null> {
+    if (!user?.id) return null
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const filename = type === 'global' ? `avatar.${ext}` : `roomies.${ext}`
+    const path = `${user.id}/${filename}`
+    const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true })
+    if (error) return null
+    const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path)
+    const col = type === 'global' ? 'avatar_url' : 'roomies_avatar_url'
+    await supabase.from('profiles').update({ [col]: publicUrl }).eq('id', user.id)
+    return publicUrl
+  }
+
+  function handleOnboardPhotoChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const preview = URL.createObjectURL(file)
+    setCustomPhotoUrl(preview)
+    if (!profile?.avatar_url) {
+      setPendingPhotoFile(file)
+      setPhotoDialog('apply-all')
+    } else {
+      setPhotoDialog(null)
+      setPendingPhotoFile(file)
+    }
+  }
+
+  async function handleImportGlobal() {
+    setCustomPhotoUrl(profile?.avatar_url ?? null)
+    setPhotoDialog(null)
+  }
+
   // ── Step 2: Save profile ──────────────────────────────────────
   async function handleProfile() {
     if (!username.trim()) return setError('Username required')
     setLoading(true)
-    const { error } = await supabase.from('profiles').update({ username: username.trim(), avatar_url: selectedAvatar }).eq('id', user!.id)
+
+    // Resolve final avatar URL
+    let finalAvatar = customPhotoUrl ?? selectedAvatar
+    if (pendingPhotoFile && photoDialog === null) {
+      // Upload pending file; dialog was shown, user chose (apply-all or roomies-only handled below)
+    }
+    if (pendingPhotoFile && photoDialog === 'apply-all') {
+      // User hasn't answered yet — just upload as roomies-only and proceed
+      const url = await uploadPhoto(pendingPhotoFile, 'roomies')
+      if (url) finalAvatar = url
+      setPendingPhotoFile(null)
+    } else if (pendingPhotoFile) {
+      const url = await uploadPhoto(pendingPhotoFile, 'roomies')
+      if (url) finalAvatar = url
+      setPendingPhotoFile(null)
+    }
+
+    const { error } = await supabase.from('profiles').update({ username: username.trim(), avatar_url: finalAvatar }).eq('id', user!.id)
     setLoading(false)
     if (error) return setError(error.message)
     await refreshProfile()
     next()
+  }
+
+  async function handleApplyAllOnboard() {
+    if (!pendingPhotoFile) return
+    setPhotoUploading(true)
+    const url = await uploadPhoto(pendingPhotoFile, 'global')
+    if (url) setCustomPhotoUrl(url)
+    setPendingPhotoFile(null)
+    setPhotoUploading(false)
+    setPhotoDialog(null)
+  }
+
+  async function handleApplyRoomiesOnboard() {
+    if (!pendingPhotoFile) return
+    setPhotoUploading(true)
+    const url = await uploadPhoto(pendingPhotoFile, 'roomies')
+    if (url) setCustomPhotoUrl(url)
+    setPendingPhotoFile(null)
+    setPhotoUploading(false)
+    setPhotoDialog(null)
   }
 
   // ── Step 3: Create household ──────────────────────────────────
@@ -299,16 +385,63 @@ export default function Onboarding() {
         {step === 2 && (
           <div>
             <h2 style={{ fontWeight: 800, fontSize: 24, margin: '0 0 6px', letterSpacing: '-0.5px' }}>Your Profile</h2>
-            <p style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Pick a handle and avatar</p>
-            <input className="glass-input" placeholder="@username" value={username} onChange={e => setUsername(e.target.value)} style={{ marginBottom: 24 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
-              {AVATAR_OPTIONS.map(av => (
-                <div key={av} onClick={() => setSelectedAvatar(av)} style={{ cursor: 'pointer', borderRadius: 16, overflow: 'hidden', border: selectedAvatar === av ? '3px solid #2563EB' : '3px solid transparent', boxShadow: selectedAvatar === av ? '0 0 20px rgba(37,99,235,0.4)' : undefined, transition: 'all 0.2s' }}>
-                  <img src={av} alt="avatar" style={{ width: '100%', aspectRatio: '1', display: 'block' }} />
+            <p style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Pick a handle and photo</p>
+            <input className="glass-input" placeholder="@username" value={username} onChange={e => setUsername(e.target.value)} style={{ marginBottom: 20 }} />
+
+            {/* Profile Photo */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Profile Photo</div>
+
+              {/* Upload custom photo option */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  {customPhotoUrl
+                    ? <img src={customPhotoUrl} alt="" style={{ width: 56, height: 56, borderRadius: 14, objectFit: 'cover', border: '3px solid #2563EB' }} />
+                    : <div onClick={handlePhotoButton} style={{ width: 56, height: 56, borderRadius: 14, border: '2px dashed rgba(37,99,235,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 22, background: 'rgba(37,99,235,0.04)' }}>📷</div>
+                  }
+                  {customPhotoUrl && (
+                    <button onClick={handlePhotoButton} style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, background: '#2563EB', border: '2px solid white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'white', fontWeight: 900 }}>
+                      {photoUploading ? '…' : '✎'}
+                    </button>
+                  )}
+                  <input ref={photoFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleOnboardPhotoChosen} />
                 </div>
-              ))}
+
+                {photoDialog === 'import-or-new' ? (
+                  <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 12, padding: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>You have an AppWare photo. Use it here?</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={handleImportGlobal} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, Use It</button>
+                      <button onClick={() => { setPhotoDialog(null); photoFileRef.current?.click() }} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Choose Different</button>
+                    </div>
+                  </div>
+                ) : photoDialog === 'apply-all' ? (
+                  <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 12, padding: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Apply to all AppWare apps?</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={handleApplyAllOnboard} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, All Apps</button>
+                      <button onClick={handleApplyRoomiesOnboard} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Just Roomies</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={handlePhotoButton} style={{ background: 'none', border: '1px dashed rgba(37,99,235,0.3)', borderRadius: 12, padding: '10px 16px', cursor: 'pointer', color: '#6B7280', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>
+                    {customPhotoUrl ? 'Change Photo' : 'Upload Custom Photo'}
+                  </button>
+                )}
+              </div>
+
+              {/* Or choose an avatar illustration */}
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Or choose an avatar</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {AVATAR_OPTIONS.map(av => (
+                  <div key={av} onClick={() => { setSelectedAvatar(av); setCustomPhotoUrl(null) }} style={{ cursor: 'pointer', borderRadius: 14, overflow: 'hidden', border: !customPhotoUrl && selectedAvatar === av ? '3px solid #2563EB' : '3px solid transparent', boxShadow: !customPhotoUrl && selectedAvatar === av ? '0 0 16px rgba(37,99,235,0.35)' : undefined, transition: 'all 0.2s', opacity: customPhotoUrl ? 0.45 : 1 }}>
+                    <img src={av} alt="avatar" style={{ width: '100%', aspectRatio: '1', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
             </div>
-            <button className="btn-blue" onClick={handleProfile} disabled={loading}>{loading ? '…' : 'Continue'}</button>
+
+            <button className="btn-blue" onClick={handleProfile} disabled={loading || photoUploading}>{loading ? '…' : 'Continue'}</button>
           </div>
         )}
 
