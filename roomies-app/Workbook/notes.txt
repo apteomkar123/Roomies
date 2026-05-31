@@ -1,3 +1,5 @@
+I emptied .gitignore, I wanted all files and dependencies to follow me from machine to machine.
+Netlify build error: #L52-L58 shows TypeScript error TS2551 because supabase.from('profiles').insert(...) returns a PostgrestFilterBuilder, which does not expose a .catch() method. Chaining .catch on the awaited call therefore fails the build.
 Nothing is showing up on the page
 Continue with Google, starts to load the page, but then does nothing after that, just returns to the sign in page. Fix that.
 Add a show password button in the password field, use the little eye symbol that every website has.

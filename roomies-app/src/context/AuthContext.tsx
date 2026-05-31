@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error?.code === '23505') {
         // Username already taken — append random suffix
         username = `${username}_${Math.random().toString(36).slice(2, 6)}`
-        await supabase.from('profiles').insert({ id: uid, username }).catch(() => {})
+        await supabase.from('profiles').insert({ id: uid, username })
       }
       const { data: created } = await supabase.from('profiles').select('*').eq('id', uid).single()
       if (created) setProfile(created as Profile)
