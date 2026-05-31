@@ -54,9 +54,16 @@ export default function Chores() {
       supabase.from('chore_assignments').select('*, profiles(username, avatar_url)').eq('status', 'Pending'),
       supabase.from('karma_marketplace').select('*').eq('is_open', true),
     ])
-    setChores((c ?? []) as Chore[])
-    setAssignments((a ?? []) as ChoreAssignment[])
-    setMarketplace((m ?? []) as KarmaMarketplace[])
+    const choreList = (c ?? []) as Chore[]
+    setChores(choreList)
+
+    // Filter to only assignments/marketplace items belonging to this household's chores
+    const choreIds = new Set(choreList.map(ch => ch.id))
+    const assignmentList = ((a ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
+    setAssignments(assignmentList)
+
+    const assignmentIds = new Set(assignmentList.map(as => as.id))
+    setMarketplace(((m ?? []) as KarmaMarketplace[]).filter(item => assignmentIds.has(item.assignment_id)))
   }
 
   async function addChore() {

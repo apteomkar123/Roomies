@@ -7,10 +7,10 @@ import GlassPanel from '../components/ui/GlassPanel'
 import AvatarHalo from '../components/ui/AvatarHalo'
 import NavBar from '../components/ui/NavBar'
 import type { Booking, LockboxSecret, PetLog, PresenceStatus } from '../types'
-import { format, isSameDay } from 'date-fns'
+import { format, isSameDay, startOfDay } from 'date-fns'
 
 const PRESENCE_OPTIONS: PresenceStatus[] = ['Available', 'Sleeping', 'Quiet Hours / Studying', 'Work From Home', 'Away']
-const RESOURCES = ['Washing Machine', 'Dryer', 'Parking Bay A', 'Parking Bay B', 'BBQ']
+const RESOURCES = ['Washing Machine', 'Dryer', 'Parking Bay A', 'Parking Bay B', 'BBQ', 'Rooftop']
 const PET_ACTIONS = ['Morning Feed', 'Evening Feed', 'Daily Walk', 'Medication Administered'] as const
 
 export default function Dashboard() {
@@ -52,7 +52,7 @@ export default function Dashboard() {
 
   async function loadPetLogs() {
     if (!household) return
-    const today = format(new Date(), 'yyyy-MM-dd')
+    const today = startOfDay(new Date()).toISOString()
     const { data } = await supabase.from('pet_logs').select('*, profiles(username)').eq('household_id', household.id).gte('action_at', today)
     setPetLogs((data ?? []) as PetLog[])
   }
@@ -223,7 +223,7 @@ export default function Dashboard() {
           {PET_ACTIONS.map(action => {
             const done = petLogs.find(l => l.action === action && l.pet_name === petName)
             return (
-              <button key={action} onClick={() => logPetAction(action)} style={{ padding: '14px 12px', borderRadius: 16, border: done ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid transparent', cursor: 'pointer', fontFamily: 'inherit', background: done ? 'rgba(16,185,129,0.12)' : 'rgba(0,0,0,0.05)', transition: 'all 0.2s', textAlign: 'left' }}>
+              <button key={action} onClick={() => !done && logPetAction(action)} style={{ padding: '14px 12px', borderRadius: 16, border: done ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid transparent', cursor: done ? 'default' : 'pointer', fontFamily: 'inherit', background: done ? 'rgba(16,185,129,0.12)' : 'rgba(0,0,0,0.05)', transition: 'all 0.2s', textAlign: 'left' }}>
                 <div style={{ fontWeight: 800, fontSize: 13, color: done ? '#059669' : '#374151' }}>{done ? '✓ ' : ''}{action}</div>
                 {done && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>by {done.profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}</div>}
               </button>

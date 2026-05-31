@@ -39,7 +39,7 @@ export default function Bookings() {
   }
 
   async function addBooking() {
-    if (!household) return
+    if (!household || endHour <= startHour) return
     const base = startOfDay(selectedDay)
     const start = new Date(base); start.setHours(startHour)
     const end = new Date(base); end.setHours(endHour)

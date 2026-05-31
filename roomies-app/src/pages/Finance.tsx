@@ -43,8 +43,11 @@ export default function Finance() {
       supabase.from('transactions').select('*, profiles(username)').eq('household_id', household.id).order('created_at', { ascending: false }),
       supabase.from('transaction_splits').select('*').eq('settled', false),
     ])
-    setTransactions((txs ?? []) as Transaction[])
-    setSplits((sp ?? []) as TransactionSplit[])
+    const txList = (txs ?? []) as Transaction[]
+    setTransactions(txList)
+    // Filter splits to only those belonging to this household's transactions
+    const txIds = new Set(txList.map(t => t.id))
+    setSplits(((sp ?? []) as TransactionSplit[]).filter(s => txIds.has(s.transaction_id)))
   }
 
   async function addTransaction() {

@@ -73,6 +73,11 @@ A living document tracking what's shipped, what works, and what's pending.
 - Pet care log (Morning Feed, Evening Feed, Daily Walk, Medication)
 - Per-pet tracking within a household
 
+### Karma Leaderboard
+- `/karma` page showing ranked household members by karma score
+- Medal icons for top 3 positions
+- "How to earn karma" guide panel
+
 ### More / Settings
 - Navigation hub for secondary pages
 - Sign out
@@ -82,7 +87,6 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ## ❌ Not Yet Implemented / Known Gaps
 
-- Karma Leaderboard page (`/karma` route linked in More but not built)
 - Push notifications for notices, maintenance updates, bookings
 - Deep link sharing for individual resources
 - Native mobile app (iOS / Android)

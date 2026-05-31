@@ -1,3 +1,47 @@
+SESSION LOG — 2026-05-31 (audit)
+=================================
+
+BUGS FIXED
+----------
+1. /karma route missing — Karma Leaderboard page did not exist; clicking it from More
+   page redirected to home. Fix: Created src/pages/Karma.tsx (ranked leaderboard with
+   medal icons and karma guide) and added the /karma route in App.tsx.
+
+2. Chores.tsx — chore_assignments and karma_marketplace not filtered by household.
+   Both queries returned all rows globally. Fix: After loading chores, client-side
+   filter assignments by choreIds and marketplace by assignmentIds so only this
+   household's data is shown.
+
+3. Finance.tsx — transaction_splits fetched globally (all households).
+   Fix: After loading transactions, client-side filter splits by txIds so only
+   this household's unsettled splits are included in debt calculations.
+
+4. Dashboard.tsx — pet action buttons allowed re-logging a done action.
+   Pets.tsx already had `!done &&` guard; Dashboard did not.
+   Fix: Added `!done &&` guard and `cursor: done ? 'default' : 'pointer'` to match Pets.tsx.
+
+5. Dashboard.tsx — RESOURCES list missing "Rooftop". Bookings.tsx lists 6 resources
+   (including Rooftop) but Dashboard appliance grid only showed 5. Bookings made for
+   Rooftop were invisible in Dashboard.
+   Fix: Added 'Rooftop' to Dashboard RESOURCES constant.
+
+6. Dashboard.tsx — pet logs date filter used `format(new Date(), 'yyyy-MM-dd')` which
+   Postgres interprets as UTC midnight, causing timezone mismatch for users ahead of UTC.
+   Fix: Changed to `startOfDay(new Date()).toISOString()` (consistent with Pets.tsx).
+
+7. Bookings.tsx — addBooking() had no guard against endHour <= startHour, allowing
+   zero-duration or reversed bookings.
+   Fix: Added `endHour <= startHour` early return in addBooking().
+
+8. App.tsx PasswordResetScreen — first password field missing Enter key handler.
+   Only the second (confirm) field had onKeyDown. Fix: Added onKeyDown to new-password field.
+
+UNABLE TO DO
+------------
+None.
+
+----------------
+
 SESSION LOG — 2026-05-31
 ========================
 
