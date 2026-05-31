@@ -60,15 +60,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Must subscribe before getSession — in Supabase v2 PKCE, onAuthStateChange fires
     // INITIAL_SESSION which triggers the URL code exchange for OAuth callbacks.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-      clearTimeout(timeout)
+      // During SSO the null INITIAL_SESSION can arrive after (or race with) the real
+      // SIGNED_IN fired by setSession — ignore it so we don't wipe the user state or
+      // cancel the safety timeout before the profile fetch has a chance to run.
+      if (event === 'INITIAL_SESSION' && !s?.user && pendingSSO) return
+
       setSession(s)
       setUser(s?.user ?? null)
       if (event === 'PASSWORD_RECOVERY') setNeedsPasswordReset(true)
       if (s?.user) {
-        fetchProfile(s.user.id, s.user.email ?? undefined).finally(() => setLoading(false))
-      } else if (!pendingSSO || event !== 'INITIAL_SESSION') {
-        // Skip the no-user loading resolution if SSO tokens are about to be injected
-        setProfile(null); setLoading(false)
+        // Keep the timeout alive until fetchProfile resolves — it acts as a failsafe
+        // in case the DB query hangs (e.g. degraded network).
+        fetchProfile(s.user.id, s.user.email ?? undefined).finally(() => {
+          clearTimeout(timeout)
+          setLoading(false)
+        })
+      } else {
+        clearTimeout(timeout)
+        setProfile(null)
+        setLoading(false)
       }
     })
 

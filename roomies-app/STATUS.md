@@ -14,6 +14,7 @@ A living document tracking what's shipped, what works, and what's pending.
 - Google and Apple sign-in removed (replaced by AppWare SSO)
 - Client-side profile row creation fallback (for when DB trigger fails silently on signup)
 - Password reset screen (redirected from Supabase reset email)
+- **Auth loading bug fix** — resolved infinite spinner: 5-second timeout now stays alive until `fetchProfile` completes (handles degraded-network hangs); SSO null `INITIAL_SESSION` early-returns so it can't wipe user state set by a concurrent `SIGNED_IN` event
 
 ### Onboarding
 - Multi-step flow: sign-in/sign-up → profile setup (username, avatar) → create or join a household
