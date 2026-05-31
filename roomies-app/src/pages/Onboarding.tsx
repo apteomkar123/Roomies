@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import type { CoLivingAgreement } from '../types'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 
@@ -50,7 +51,7 @@ export default function Onboarding() {
   const [maxGuests, setMaxGuests] = useState(3)
 
   // Step 4B state
-  const [joinHousehold, setJoinHousehold] = useState<{ id: string; name: string; agreement: any } | null>(null)
+  const [joinHousehold, setJoinHousehold] = useState<{ id: string; name: string; agreement: CoLivingAgreement | null } | null>(null)
 
   // Step 5 (swipe)
   const [swiped, setSwiped] = useState(false)
@@ -63,8 +64,9 @@ export default function Onboarding() {
 
   // Advance past sign-in if OAuth callback fires after initial render
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (user && step === 1) setStep(2)
-  }, [user])
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Step 1: Auth ──────────────────────────────────────────────
   async function handleAuth() {

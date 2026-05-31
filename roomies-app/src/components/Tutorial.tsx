@@ -44,13 +44,15 @@ export default function Tutorial() {
   // Navigate to correct page for this step
   useEffect(() => {
     if (!active) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRect(null)
     navigate(current.route)
-  }, [step, active])
+  }, [step, active]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Find element and measure it; fall back to a centre rect if element is in a conditional render
   useEffect(() => {
     if (!active) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRect(null)
     const find = () => {
       const el = document.getElementById(current.elementId)
@@ -71,7 +73,7 @@ export default function Tutorial() {
       }, 400)
       return () => clearTimeout(t)
     }
-  }, [step, active])
+  }, [step, active]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-measure on resize
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function Tutorial() {
     }
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
-  }, [step, active, rect])
+  }, [step, active, rect]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!active) return null
 

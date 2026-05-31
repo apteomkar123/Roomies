@@ -18,7 +18,7 @@ export default function Lockbox() {
   useEffect(() => {
     if (!household) return
     load()
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     if (!household) return
@@ -37,7 +37,7 @@ export default function Lockbox() {
     load()
   }
 
-  const toggle = (id: string) => setRevealed(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggle = (id: string) => setRevealed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>

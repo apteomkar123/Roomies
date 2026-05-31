@@ -18,6 +18,7 @@ export interface Profile {
   id: string
   username: string
   avatar_url: string | null
+  roomies_avatar_url: string | null
   karma: number
   active_household_id: string | null
   away: boolean
@@ -49,6 +50,7 @@ export interface Chore {
   description: string | null
   recurrence: ChoreRecurrence
   rotation_offset: number
+  difficulty?: number
   created_at: string
 }
 

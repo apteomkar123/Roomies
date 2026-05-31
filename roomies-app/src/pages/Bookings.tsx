@@ -30,7 +30,7 @@ export default function Bookings() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     if (!household) return

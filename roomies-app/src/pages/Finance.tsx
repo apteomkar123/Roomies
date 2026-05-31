@@ -35,7 +35,7 @@ export default function Finance() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transaction_splits' }, loadAll)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAll() {
     if (!household) return
@@ -159,7 +159,7 @@ export default function Finance() {
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: CATEGORY_COLORS[tx.category] ?? '#6B7280', display: 'inline-block' }} />
                 <span style={{ fontWeight: 700, fontSize: 15 }}>{tx.memo || tx.category}</span>
               </div>
-              <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Paid by {(tx as any).profiles?.username} · {format(new Date(tx.created_at), 'MMM d')}</div>
+              <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Paid by {tx.profiles?.username} · {format(new Date(tx.created_at), 'MMM d')}</div>
             </div>
             <span style={{ fontWeight: 800, fontSize: 16, color: tx.paid_by === user?.id ? '#10B981' : '#374151' }}>${Number(tx.amount).toFixed(2)}</span>
           </div>

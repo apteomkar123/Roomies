@@ -33,15 +33,16 @@ export default function Notices() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notices' }, loadNotices)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadNotices() {
     if (!household) return
     const { data } = await supabase.from('notices').select('*, profiles(username), read_acks(user_id)').eq('household_id', household.id).order('created_at', { ascending: false })
-    setNotices((data ?? []) as Notice[])
+    const notices = (data ?? []) as Notice[]
+    setNotices(notices)
     const myReads = new Set<string>()
-    for (const n of (data ?? [])) {
-      if ((n as any).read_acks?.some((r: any) => r.user_id === user?.id)) myReads.add(n.id)
+    for (const n of notices) {
+      if (n.read_acks?.some(r => r.user_id === user?.id)) myReads.add(n.id)
     }
     setReadIds(myReads)
   }
@@ -100,7 +101,7 @@ export default function Notices() {
             {n.title && <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{n.title}</div>}
             <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{n.body}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>by {(n as any).profiles?.username}</span>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>by {n.profiles?.username}</span>
               {!read && (
                 <button onClick={() => acknowledge(n.id)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>✓ Acknowledge</button>
               )}

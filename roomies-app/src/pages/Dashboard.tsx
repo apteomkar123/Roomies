@@ -27,6 +27,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const me = presences.find(p => p.profile_id === user?.id)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (me) setMyPresence(me.status)
   }, [presences, user])
 
@@ -41,7 +42,7 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pet_logs',  filter: `household_id=eq.${household.id}` }, loadPetLogs)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadBookings() {
     if (!household) return
@@ -118,7 +119,7 @@ export default function Dashboard() {
           </div>
           <div style={{ color: '#6B7280', fontSize: 14, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
         </div>
-        <AvatarHalo avatarUrl={profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
+        <AvatarHalo avatarUrl={profile?.roomies_avatar_url ?? profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
       </div>
 
       {/* Presence selector */}
@@ -191,7 +192,7 @@ export default function Dashboard() {
                       <td key={h} style={{ padding: 3, textAlign: 'center' }}>
                         <div
                           onClick={() => !booking && bookSlot(res, h)}
-                          title={booking ? `Booked by ${(booking as any).profiles?.username}` : 'Click to book'}
+                          title={booking ? `Booked by ${booking.profiles?.username}` : 'Click to book'}
                           style={{
                             width: 22, height: 22, borderRadius: 6,
                             background: color ? color + '33' : 'rgba(0,0,0,0.05)',
@@ -224,7 +225,7 @@ export default function Dashboard() {
             return (
               <button key={action} onClick={() => logPetAction(action)} style={{ padding: '14px 12px', borderRadius: 16, border: done ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid transparent', cursor: 'pointer', fontFamily: 'inherit', background: done ? 'rgba(16,185,129,0.12)' : 'rgba(0,0,0,0.05)', transition: 'all 0.2s', textAlign: 'left' }}>
                 <div style={{ fontWeight: 800, fontSize: 13, color: done ? '#059669' : '#374151' }}>{done ? '✓ ' : ''}{action}</div>
-                {done && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>by {(done as any).profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}</div>}
+                {done && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>by {done.profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}</div>}
               </button>
             )
           })}
@@ -246,7 +247,7 @@ export default function Dashboard() {
                 </div>
               </div>
               {item.is_restricted && (
-                <button onClick={() => setRevealed(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n })} style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#2563EB', fontFamily: 'inherit' }}>
+                <button onClick={() => setRevealed(prev => { const n = new Set(prev); if (n.has(item.id)) n.delete(item.id); else n.add(item.id); return n })} style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#2563EB', fontFamily: 'inherit' }}>
                   {isHidden ? 'Reveal' : 'Hide'}
                 </button>
               )}

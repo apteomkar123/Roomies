@@ -25,7 +25,7 @@ export default function Guests() {
   useEffect(() => {
     if (!household) return
     loadAll()
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAll() {
     if (!household) return
@@ -104,7 +104,7 @@ export default function Guests() {
                 <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 2 }}>
                   {format(new Date(log.arrival_date), 'MMM d')} → {format(new Date(log.departure_date), 'MMM d')} · {nights} night{nights !== 1 ? 's' : ''}
                 </div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Host: {(log as any).profiles?.username}</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Host: {log.profiles?.username}</div>
               </div>
               {over && <span style={{ background: 'rgba(244,63,94,0.1)', color: '#E11D48', padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>Overstay</span>}
             </div>

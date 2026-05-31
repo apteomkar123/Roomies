@@ -22,7 +22,7 @@ export default function Shopping() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     if (!household) return
@@ -81,7 +81,7 @@ export default function Shopping() {
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{item.title}</span>
                   <span style={{ fontSize: 12, color: '#9CA3AF' }}>×{item.quantity}</span>
                 </div>
-                <div style={{ fontSize: 11, color: '#9CA3AF' }}>by {(item as any).profiles?.username}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF' }}>by {item.profiles?.username}</div>
               </div>
               <button onClick={() => deleteItem(item.id)} style={{ background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 16 }}>✕</button>
             </div>

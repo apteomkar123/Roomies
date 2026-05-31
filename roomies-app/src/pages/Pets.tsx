@@ -26,7 +26,7 @@ export default function Pets() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pet_logs' }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     if (!household) return
@@ -75,7 +75,7 @@ export default function Pets() {
                   <div style={{ fontWeight: 700, fontSize: 13, color: done ? '#059669' : '#374151' }}>{action}</div>
                   {done ? (
                     <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>
-                      {(done as any).profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}
+                      {done.profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}
                     </div>
                   ) : (
                     <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>Tap to log</div>

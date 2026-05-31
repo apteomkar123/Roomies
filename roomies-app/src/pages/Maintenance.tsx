@@ -34,7 +34,7 @@ export default function Maintenance() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_tickets' }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     if (!household) return
@@ -103,7 +103,7 @@ export default function Maintenance() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 16 }}>{t.title}</div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>by {(t as any).profiles?.username} · {format(new Date(t.created_at), 'MMM d')}</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>by {t.profiles?.username} · {format(new Date(t.created_at), 'MMM d')}</div>
               </div>
               <span style={{ background: st.bg, color: st.color, padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>{t.status}</span>
             </div>

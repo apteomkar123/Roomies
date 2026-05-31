@@ -45,7 +45,7 @@ export default function Chores() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'karma_marketplace' }, loadAll)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [household])
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAll() {
     if (!household) return
@@ -68,7 +68,7 @@ export default function Chores() {
   async function markDone(id: string) {
     const doneAssignment = assignments.find(a => a.id === id)
     const choreTitle = chores.find(c => c.id === doneAssignment?.chore_id)?.title ?? 'a chore'
-    const choreDifficulty = (chores.find(c => c.id === doneAssignment?.chore_id) as any)?.difficulty ?? 2
+    const choreDifficulty = chores.find(c => c.id === doneAssignment?.chore_id)?.difficulty ?? 2
 
     await supabase.from('chore_assignments').update({ status: 'Completed', completed_at: new Date().toISOString() }).eq('id', id)
     if (profile) await supabase.from('profiles').update({ karma: (profile.karma ?? 100) + 10 }).eq('id', user!.id)
@@ -174,15 +174,15 @@ export default function Chores() {
           {/* Feature #14: Sort high-difficulty chores first when nutrition shortfall detected */}
           {[...assignments].sort((a, b) =>
             nutritionBoostActive
-              ? ((chores.find(c => c.id === b.chore_id) as any)?.difficulty ?? 2) -
-                ((chores.find(c => c.id === a.chore_id) as any)?.difficulty ?? 2)
+              ? (chores.find(c => c.id === b.chore_id)?.difficulty ?? 2) -
+                (chores.find(c => c.id === a.chore_id)?.difficulty ?? 2)
               : 0
           ).map(a => {
             const isMe = a.assigned_to === user?.id
             return (
               <div key={a.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{(a as any).chores?.title ?? 'Task'}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{a.chores?.title ?? 'Task'}</div>
                   <div style={{ fontSize: 12, color: '#9CA3AF' }}>Due {format(new Date(a.due_date), 'MMM d')}</div>
                 </div>
                 {isMe && (

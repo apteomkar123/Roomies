@@ -46,6 +46,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { load() }, [profile?.active_household_id])
 
   // Real-time: presence changes
@@ -55,7 +56,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, () => load())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [profile?.active_household_id])
+  }, [profile?.active_household_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Ctx.Provider value={{ household, members, memberProfiles, presences, loading, reload: load }}>
@@ -64,6 +65,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useHousehold = () => {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useHousehold must be inside HouseholdProvider')

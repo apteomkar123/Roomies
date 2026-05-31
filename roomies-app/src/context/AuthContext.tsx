@@ -15,6 +15,7 @@ interface AuthCtx {
   updatePassword: (password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  updateAvatar: (file: File, type?: 'global' | 'roomies') => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -115,13 +116,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id, user.email ?? undefined)
   }
 
+  const updateAvatar = async (file: File, type: 'global' | 'roomies' = 'global') => {
+    if (!user) return
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const filename = type === 'roomies' ? `roomies.${ext}` : `avatar.${ext}`
+    const path = `${user.id}/${filename}`
+    const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true })
+    if (error) return
+    const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path)
+    const col = type === 'roomies' ? 'roomies_avatar_url' : 'avatar_url'
+    await supabase.from('profiles').update({ [col]: publicUrl }).eq('id', user.id)
+    setProfile(prev => prev ? { ...prev, [col]: publicUrl } : prev)
+  }
+
   return (
-    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, updatePassword, signOut, refreshProfile }}>
+    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, updatePassword, signOut, refreshProfile, updateAvatar }}>
       {children}
     </Ctx.Provider>
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useAuth must be inside AuthProvider')

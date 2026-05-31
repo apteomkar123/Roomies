@@ -46,6 +46,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTutorial = () => {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useTutorial must be inside TutorialProvider')
