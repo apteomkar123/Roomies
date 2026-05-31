@@ -25,6 +25,10 @@ export default function Guests() {
   useEffect(() => {
     if (!household) return
     loadAll()
+    const ch = supabase.channel(`guests:${household.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guest_logs', filter: `household_id=eq.${household.id}` }, loadAll)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAll() {
@@ -41,6 +45,7 @@ export default function Guests() {
 
   async function addLog() {
     if (!guestName.trim() || !arrival || !departure || !household) return
+    if (departure <= arrival) return
     await supabase.from('guest_logs').insert({ household_id: household.id, host_id: user!.id, guest_name: guestName, arrival_date: arrival, departure_date: departure })
     setGuestName(''); setArrival(''); setDeparture(''); setShowAdd(false); loadAll()
   }

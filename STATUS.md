@@ -28,10 +28,10 @@
 ### Dashboard
 - Ambient Porcelain Neon Glass canvas (animated radial orbs)
 - Floating capsule NavBar with gradient active state
-- Presence status selector (Available / Sleeping / Quiet Hours / WFH / Away)
-- Roommate grid with Avatar Halo glow rings (colour changes per status)
+- Presence status selector (Available / Sleeping / Quiet Hours / WFH / Away) — setting Away also sets `profile.away=true` so chore rotation excludes that user automatically
+- Roommate grid with Avatar Halo glow rings (colour changes per status); now uses `roomies_avatar_url ?? avatar_url` for consistency
 - **Buzz Deck** — one-tap Trash Buzz and Quiet Buzz alerts (posts to Notices in real-time)
-- **Appliance Booker** — hourly time-grid for shared resources, colour-coded per user
+- **Appliance Booker** — hourly time-grid for shared resources, colour-coded per user; multi-hour bookings now correctly highlight all booked cells
 - **Pet Tracker** — four action buttons with timestamp + username stamps
 - **Lockbox widget** — masked secrets with reveal toggle
 
@@ -39,7 +39,7 @@
 - Add chores with recurrence (Twice Weekly / Weekly / Bi-Weekly / Monthly / Quarterly)
 - Procedural rotation display (modulo algorithm, respects away state)
 - Pending assignment list with mark-done (+10 karma) and auction actions
-- Karma Marketplace — list and claim auctioned tasks (+karma reward)
+- Karma Marketplace — list and claim auctioned tasks (+karma reward); marketplace cards now show real chore title instead of "Available Task"
 - Real-time updates via Supabase channel
 
 ### Finance
@@ -57,7 +57,7 @@
 
 ### Bookings
 - 7-day day selector
-- Per-resource timeline grid (colour-coded per user)
+- Per-resource timeline grid (colour-coded per user); multi-hour bookings highlight all spanned cells; endHour auto-corrects when startHour advances past it
 - Add / delete own bookings
 - Real-time updates
 
@@ -67,10 +67,11 @@
 - Real-time updates
 
 ### Guests
-- Log guest stays (name, arrival, departure)
+- Log guest stays (name, arrival, departure) — validates departure > arrival
 - Overstay detection against co-living agreement threshold
 - **Guest Overstay Surcharge** — auto utility surcharge calculation (Section 3C algorithm)
 - Surcharge alert cards
+- Real-time updates via Supabase channel
 
 ### Shopping List
 - Add items with quantity and urgent flag
@@ -86,6 +87,7 @@
 - Add / delete secrets
 - Restricted flag — hides value behind a reveal tap
 - Invite code display on More page
+- Real-time updates via Supabase channel
 
 ### Profiles & Karma
 - Username + avatar selection (6 DiceBear presets)

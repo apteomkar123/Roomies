@@ -1,6 +1,12 @@
 -- ============================================================
 -- Roomies — AppWare Supabase Project Setup
 -- Paste this entire file into the Supabase SQL Editor and run.
+--
+-- IMPORTANT: After running this file, ALSO run the contents of
+--   supabase/migrations/002_fix_trigger.sql
+-- in the SQL Editor. That migration wraps the handle_new_user
+-- trigger in an EXCEPTION block so signup never returns a 500
+-- "Database error saving new user."
 -- ============================================================
 
 -- Extensions

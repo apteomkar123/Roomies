@@ -52,7 +52,7 @@ export default function Chores() {
     const [{ data: c }, { data: a }, { data: m }] = await Promise.all([
       supabase.from('chores').select('*').eq('household_id', household.id),
       supabase.from('chore_assignments').select('*, profiles(username, avatar_url)').eq('status', 'Pending'),
-      supabase.from('karma_marketplace').select('*').eq('is_open', true),
+      supabase.from('karma_marketplace').select('*, chore_assignments(*, chores(title))').eq('is_open', true),
     ])
     const choreList = (c ?? []) as Chore[]
     setChores(choreList)
@@ -211,7 +211,7 @@ export default function Chores() {
           {marketplace.map(item => (
             <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>Available Task</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{item.chore_assignments?.chores?.title ?? 'Available Task'}</div>
                 <div style={{ fontSize: 12, color: '#8B5CF6', fontWeight: 700 }}>+{item.karma_bounty} karma{item.cash_bounty > 0 ? ` · $${item.cash_bounty}` : ''}</div>
               </div>
               <button onClick={() => claimFromMarket(item)} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Claim</button>

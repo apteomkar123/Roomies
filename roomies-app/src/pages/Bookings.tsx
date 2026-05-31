@@ -89,7 +89,7 @@ export default function Bookings() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', display: 'block', marginBottom: 6 }}>Start</label>
-              <select value={startHour} onChange={e => setStartHour(+e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
+              <select value={startHour} onChange={e => { const h = +e.target.value; setStartHour(h); if (endHour <= h) setEndHour(h + 1) }} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
                 {hours.map(h => <option key={h} value={h}>{h.toString().padStart(2,'0')}:00</option>)}
               </select>
             </div>
@@ -112,7 +112,7 @@ export default function Bookings() {
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{res}</div>
             <div style={{ display: 'flex', gap: 2 }}>
               {Array.from({ length: 18 }, (_, i) => i + 6).map(h => {
-                const booking = resBookings.find(b => new Date(b.start_time).getHours() === h)
+                const booking = resBookings.find(b => { const s = new Date(b.start_time).getHours(); const e = new Date(b.end_time).getHours(); return h >= s && h < e })
                 const color = booking ? profileColorMap[booking.booked_by] ?? '#2563EB' : undefined
                 const isMe = booking?.booked_by === user?.id
                 return (

@@ -1,3 +1,57 @@
+SESSION LOG — 2026-05-31 (CodeCheck + Changes.md)
+=================================================
+
+BUGS FIXED
+----------
+1. Login loop — after sign-in the app briefly showed loading=false with session set
+   but profile still null (INITIAL_SESSION sets loading=false before SIGNED_IN
+   profile fetch completes). Fix: AppRoutes now keeps Spinner visible whenever
+   session is truthy but profile is still null.
+   File: src/App.tsx
+
+2. Database error saving new user — the trigger fix (002_fix_trigger.sql) was
+   already written but the setup file didn't prominently remind the developer to
+   run it. Fix: Added a IMPORTANT comment at the top of SUPABASE_SETUP.sql.
+   File: roomies-app/SUPABASE_SETUP.sql
+
+3. Dashboard Roommates grid used p.avatar_url instead of
+   p.roomies_avatar_url ?? p.avatar_url, inconsistent with every other component.
+   File: src/pages/Dashboard.tsx
+
+4. Multi-hour bookings: timeline cells only highlighted the start hour.
+   Fix: Both Dashboard getBookingOwner() and Bookings.tsx timeline cell lookup
+   now use h >= startHour && h < endHour to span all booked cells.
+   Files: src/pages/Dashboard.tsx, src/pages/Bookings.tsx
+
+5. Bookings endHour staleness: changing startHour to a value >= endHour left the
+   endHour select showing a stale value outside the filtered options.
+   Fix: startHour onChange auto-bumps endHour to startHour + 1 when needed.
+   File: src/pages/Bookings.tsx
+
+6. Guests: no validation that departure date is after arrival date.
+   Fix: addLog() returns early if departure <= arrival.
+   File: src/pages/Guests.tsx
+
+7. Chores Karma Marketplace showed hardcoded "Available Task" — the chore title
+   was never fetched. Fix: added chore_assignments(*, chores(title)) join to the
+   marketplace query and display item.chore_assignments?.chores?.title.
+   File: src/pages/Chores.tsx
+
+8. Away presence status didn't update profile.away, so the chore rotation
+   algorithm (which reads profile.away) was never affected by the presence toggle.
+   Fix: updatePresence() now also updates profiles.away = (status === 'Away').
+   File: src/pages/Dashboard.tsx
+
+9. Lockbox and Guests pages had no real-time Supabase channel subscriptions,
+   unlike every other page. Fix: added channel subscriptions to both.
+   Files: src/pages/Lockbox.tsx, src/pages/Guests.tsx
+
+UNABLE TO DO
+------------
+None.
+
+----------------
+
 SESSION LOG — 2026-05-31 (audit)
 =================================
 

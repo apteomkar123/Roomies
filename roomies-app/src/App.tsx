@@ -80,7 +80,9 @@ function PasswordResetScreen() {
 function AppRoutes() {
   const { session, profile, loading, needsPasswordReset } = useAuth()
 
-  if (loading) return <Spinner />
+  // Keep spinner up while session exists but profile hasn't loaded yet —
+  // prevents a flash-redirect to /welcome during the SIGNED_IN profile fetch.
+  if (loading || (!!session && !profile)) return <Spinner />
   if (needsPasswordReset) return <PasswordResetScreen />
 
   const authed = !!session

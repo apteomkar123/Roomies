@@ -65,7 +65,10 @@ export default function Dashboard() {
 
   async function updatePresence(status: PresenceStatus) {
     setMyPresence(status)
-    await supabase.from('user_presence').upsert({ profile_id: user!.id, status })
+    await Promise.all([
+      supabase.from('user_presence').upsert({ profile_id: user!.id, status }),
+      supabase.from('profiles').update({ away: status === 'Away' }).eq('id', user!.id),
+    ])
     reload()
   }
 
@@ -80,7 +83,8 @@ export default function Dashboard() {
   function getBookingOwner(resource: string, hour: number) {
     return bookings.find(b => {
       const start = new Date(b.start_time)
-      return b.resource_name === resource && isSameDay(start, new Date()) && start.getHours() === hour
+      const end   = new Date(b.end_time)
+      return b.resource_name === resource && isSameDay(start, new Date()) && hour >= start.getHours() && hour < end.getHours()
     })
   }
 
@@ -141,7 +145,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {memberProfiles.map(p => (
               <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <AvatarHalo avatarUrl={p.avatar_url} status={getPresenceForMember(p.id)} size={40} username={p.username} />
+                <AvatarHalo avatarUrl={p.roomies_avatar_url ?? p.avatar_url} status={getPresenceForMember(p.id)} size={40} username={p.username} />
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>{p.username}</div>
                 <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>⭐ {p.karma}</div>
               </div>

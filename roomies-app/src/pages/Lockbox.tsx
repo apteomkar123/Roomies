@@ -18,6 +18,10 @@ export default function Lockbox() {
   useEffect(() => {
     if (!household) return
     load()
+    const ch = supabase.channel(`lockbox:${household.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lockbox', filter: `household_id=eq.${household.id}` }, load)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
