@@ -21,6 +21,17 @@ function genInviteCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
+function fmt12(h: number) {
+  const ampm = h < 12 ? 'AM' : 'PM'
+  const hr = h % 12 || 12
+  return `${hr}:00 ${ampm}`
+}
+
+function parseQuietTime(s: string) {
+  const h = parseInt(s.split(':')[0])
+  return isNaN(h) ? s : fmt12(h)
+}
+
 export default function Onboarding() {
   const { user, profile, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, refreshProfile } = useAuth()
   const navigate = useNavigate()
@@ -212,23 +223,26 @@ export default function Onboarding() {
   // ── Step 4A: Finish creating ──────────────────────────────────
   async function handleFinishCreate() {
     setLoading(true)
+    // Pre-generate the UUID so we never need a post-insert SELECT.
+    // The SELECT on a freshly created household is blocked by RLS because
+    // the user isn't yet in household_members and created_by may not be set.
+    const hhId = crypto.randomUUID()
     const invite = genInviteCode()
-    const { data: hh, error } = await supabase
+    const { error } = await supabase
       .from('households')
-      .insert({ name: `${username}'s Home`, invite_code: invite })
-      .select().single()
-    if (error || !hh) { setLoading(false); return setError(error?.message ?? 'Failed') }
+      .insert({ id: hhId, name: `${username}'s Home`, invite_code: invite, created_by: user!.id })
+    if (error) { setLoading(false); return setError(error.message) }
 
     await Promise.all([
       supabase.from('coliving_agreements').insert({
-        household_id: hh.id,
+        household_id: hhId,
         quiet_start: `${quietStart}:00`,
         quiet_end: `${quietEnd}:00`,
         hygiene_score: hygieneScore,
         guest_overstay_rules: `Max ${maxGuests} consecutive nights`,
       }),
-      supabase.from('household_members').insert({ household_id: hh.id, profile_id: user!.id, role: 'Administrator' }),
-      supabase.from('profiles').update({ active_household_id: hh.id }).eq('id', user!.id),
+      supabase.from('household_members').insert({ household_id: hhId, profile_id: user!.id, role: 'Administrator' }),
+      supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user!.id),
     ])
     await refreshProfile()
     setLoading(false)
@@ -491,14 +505,14 @@ export default function Onboarding() {
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>
-                Quiet hours start: <span style={{ color: '#2563EB' }}>{quietStart}:00</span>
+                Quiet hours start: <span style={{ color: '#2563EB' }}>{fmt12(quietStart)}</span>
               </label>
               <input type="range" min={18} max={23} value={quietStart} onChange={e => setQuietStart(+e.target.value)} style={{ width: '100%', accentColor: '#2563EB' }} />
             </div>
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>
-                Quiet hours end: <span style={{ color: '#2563EB' }}>{quietEnd}:00</span>
+                Quiet hours end: <span style={{ color: '#2563EB' }}>{fmt12(quietEnd)}</span>
               </label>
               <input type="range" min={5} max={12} value={quietEnd} onChange={e => setQuietEnd(+e.target.value)} style={{ width: '100%', accentColor: '#2563EB' }} />
             </div>
@@ -530,7 +544,7 @@ export default function Onboarding() {
             {joinHousehold?.agreement && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
                 {[
-                  { label: 'Quiet hours', value: `${joinHousehold.agreement.quiet_start} – ${joinHousehold.agreement.quiet_end}`, icon: '🌙' },
+                  { label: 'Quiet hours', value: `${parseQuietTime(joinHousehold.agreement.quiet_start)} – ${parseQuietTime(joinHousehold.agreement.quiet_end)}`, icon: '🌙' },
                   { label: 'Hygiene score', value: `${joinHousehold.agreement.hygiene_score}/5`, icon: '✨' },
                   { label: 'Guest policy', value: joinHousehold.agreement.guest_overstay_rules, icon: '🏡' },
                 ].map(rule => (

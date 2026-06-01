@@ -10,6 +10,12 @@ import { format, isSameDay, addDays, startOfDay } from 'date-fns'
 
 const RESOURCES = ['Washing Machine', 'Dryer', 'Parking Bay A', 'Parking Bay B', 'BBQ', 'Rooftop']
 
+function fmt12(h: number) {
+  const ampm = h < 12 ? 'AM' : 'PM'
+  const hr = h % 12 || 12
+  return `${hr}:00 ${ampm}`
+}
+
 export default function Bookings() {
   const { user } = useAuth()
   const { household, memberProfiles } = useHousehold()
@@ -90,7 +96,7 @@ export default function Bookings() {
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', display: 'block', marginBottom: 6 }}>Start</label>
               <select value={startHour} onChange={e => { const h = +e.target.value; setStartHour(h); if (endHour <= h) setEndHour(h + 1) }} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
-                {hours.map(h => <option key={h} value={h}>{h.toString().padStart(2,'0')}:00</option>)}
+                {hours.map(h => <option key={h} value={h}>{fmt12(h)}</option>)}
               </select>
             </div>
             <div>
@@ -116,11 +122,11 @@ export default function Bookings() {
                 const color = booking ? profileColorMap[booking.booked_by] ?? '#2563EB' : undefined
                 const isMe = booking?.booked_by === user?.id
                 return (
-                  <div key={h} title={booking ? `${profileMap[booking.booked_by] ?? 'Someone'} (${h}:00–${h+1}:00)` : `${h}:00`}
+                  <div key={h} title={booking ? `${profileMap[booking.booked_by] ?? 'Someone'} (${fmt12(h)}–${fmt12(h+1)})` : fmt12(h)}
                     onClick={() => isMe && deleteBooking(booking!.id)}
                     style={{ flex: 1, height: 28, borderRadius: 6, background: color ? color + '30' : 'rgba(0,0,0,0.06)', border: `1.5px solid ${color ?? 'transparent'}`, cursor: isMe ? 'pointer' : 'default', position: 'relative', transition: 'all 0.15s' }}
                   >
-                    {h % 3 === 0 && <span style={{ position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#9CA3AF', fontWeight: 600 }}>{h}</span>}
+                    {h % 3 === 0 && <span style={{ position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#9CA3AF', fontWeight: 600 }}>{h < 12 ? `${h}a` : h === 12 ? '12p' : `${h-12}p`}</span>}
                   </div>
                 )
               })}

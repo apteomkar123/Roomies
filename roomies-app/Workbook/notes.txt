@@ -23,3 +23,5 @@ Now Roomies logs in, but doesn't make it past the initial loading page
 Please think properly and fix both of the below bugs, I've asked you to fix them like 4 times now:
 ROOMIES STILL ISN'T WORKING, IT LOADS AND THEN GOES RIGHT BACK TO THE LOG IN SCREEN AFTER LOGGING IN WITH APPWARE
 Creating a new account is still doing the exact same thing, error "Database error saving new error".
+All times around the app should be in 12 hour clock and AM PM, not 24 hour. This includes the onboarding.
+When trying to create a household, I get an error: new row violates row-level security policy for table "Households"

@@ -180,7 +180,7 @@ export default function Dashboard() {
               <tr>
                 <th style={{ textAlign: 'left', padding: '6px 10px', color: '#9CA3AF', fontWeight: 700, width: 120 }}>Resource</th>
                 {[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].map(h => (
-                  <th key={h} style={{ padding: '4px 3px', color: '#9CA3AF', fontWeight: 600, width: 28, textAlign: 'center' }}>{h}</th>
+                  <th key={h} style={{ padding: '4px 3px', color: '#9CA3AF', fontWeight: 600, width: 28, textAlign: 'center' }}>{h < 12 ? `${h}a` : h === 12 ? '12p' : `${h-12}p`}</th>
                 ))}
               </tr>
             </thead>
@@ -229,7 +229,7 @@ export default function Dashboard() {
             return (
               <button key={action} onClick={() => !done && logPetAction(action)} style={{ padding: '14px 12px', borderRadius: 16, border: done ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid transparent', cursor: done ? 'default' : 'pointer', fontFamily: 'inherit', background: done ? 'rgba(16,185,129,0.12)' : 'rgba(0,0,0,0.05)', transition: 'all 0.2s', textAlign: 'left' }}>
                 <div style={{ fontWeight: 800, fontSize: 13, color: done ? '#059669' : '#374151' }}>{done ? '✓ ' : ''}{action}</div>
-                {done && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>by {done.profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}</div>}
+                {done && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>by {done.profiles?.username} · {format(new Date(done.action_at), 'h:mm a')}</div>}
               </button>
             )
           })}

@@ -96,7 +96,7 @@ export default function Notices() {
                 <span style={{ background: st.bg, color: st.color, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{st.label}</span>
                 {!read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563EB', display: 'inline-block' }} />}
               </div>
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(n.created_at), 'MMM d, HH:mm')}</span>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(n.created_at), 'MMM d, h:mm a')}</span>
             </div>
             {n.title && <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{n.title}</div>}
             <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{n.body}</div>

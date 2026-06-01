@@ -348,7 +348,9 @@ create policy "profiles_update" on profiles for update using (auth.uid() = id);
 create policy "profiles_insert" on profiles for insert with check (auth.uid() = id);
 
 -- Households
-create policy "households_select" on households for select using (is_household_member(id));
+-- Any authenticated user can SELECT households — required for invite-code lookup
+-- (is_household_member() blocks non-members from finding a household by code)
+create policy "households_select" on households for select using (auth.uid() is not null);
 create policy "households_insert" on households for insert with check (auth.uid() is not null);
 
 -- Household members

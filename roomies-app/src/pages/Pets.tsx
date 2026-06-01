@@ -75,7 +75,7 @@ export default function Pets() {
                   <div style={{ fontWeight: 700, fontSize: 13, color: done ? '#059669' : '#374151' }}>{action}</div>
                   {done ? (
                     <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>
-                      {done.profiles?.username} · {format(new Date(done.action_at), 'HH:mm')}
+                      {done.profiles?.username} · {format(new Date(done.action_at), 'h:mm a')}
                     </div>
                   ) : (
                     <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>Tap to log</div>

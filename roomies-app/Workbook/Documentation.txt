@@ -1,3 +1,36 @@
+SESSION LOG — 2026-06-01 (Changes.md — 12-hour clock + household RLS)
+========================================================================
+
+BUGS FIXED
+----------
+1. All times displayed 24-hour format instead of 12-hour AM/PM.
+   Fixed in: Bookings.tsx (dropdowns, tooltips, grid labels), Dashboard.tsx
+   (pet action timestamps, appliance booker column headers), Notices.tsx
+   (notice timestamps), Pets.tsx (pet action timestamps), Onboarding.tsx
+   (quiet hours sliders and joiner review screen).
+   Added fmt12(h) helper to Bookings.tsx and Onboarding.tsx.
+   Added parseQuietTime(s) to Onboarding.tsx for stored "22:00" strings.
+   Changed format() calls from 'HH:mm' to 'h:mm a' in Notices/Pets/Dashboard.
+
+2. Creating a household threw "new row violates row-level security policy for
+   table 'Households'". Root cause: .insert().select() runs SELECT on the new
+   row BEFORE the user has been added to household_members — is_household_member()
+   returns false, SELECT is blocked.
+   Fix A (client): pre-generate UUID with crypto.randomUUID(), pass id to INSERT,
+   no .select() needed. Also pass created_by: user.id (unified schema field).
+   Fix B (SQL): updated households SELECT policy from is_household_member(id) to
+   auth.uid() IS NOT NULL. This also fixes invite-code lookup (non-members need to
+   SELECT households to find them by code).
+   Updated: SUPABASE_SETUP.sql, appware_unified_schema.sql.
+   Migration: supabase/migrations/003_fix_rls.sql (paste into Supabase SQL Editor).
+   ACTION REQUIRED: run 003_fix_rls.sql in the Supabase SQL Editor.
+
+UNABLE TO DO
+------------
+None.
+
+----------------
+
 SESSION LOG — 2026-06-01 (Changes.md — SSO + signup fix)
 ==========================================================
 

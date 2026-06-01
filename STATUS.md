@@ -18,9 +18,9 @@
 
 ### Onboarding
 - 6-step flow (Welcome → Profile → Household → Rules → Review → Sign)
-- Create household (generates random invite code, saves co-living rules)
-- Join household via 6-digit invite code with live validation flash
-- Co-living rule sliders (quiet hours, hygiene score, max guest nights)
+- Create household (UUID pre-generated client-side to avoid RLS SELECT race; `created_by` column populated)
+- Join household via 6-digit invite code with live validation flash (SELECT policy updated to allow any authenticated user to look up households by invite code)
+- Co-living rule sliders (quiet hours, hygiene score, max guest nights); quiet hours displayed in 12-hour AM/PM format
 - Joiner rule review screen with animated glass bubbles
 - Swipe-to-sign digital agreement (mouse + touch)
 - Step progress indicator dots
@@ -57,7 +57,7 @@
 
 ### Bookings
 - 7-day day selector
-- Per-resource timeline grid (colour-coded per user); multi-hour bookings highlight all spanned cells; endHour auto-corrects when startHour advances past it
+- Per-resource timeline grid (colour-coded per user); multi-hour bookings highlight all spanned cells; endHour auto-corrects when startHour advances past it; all time labels and dropdowns use 12-hour AM/PM format
 - Add / delete own bookings
 - Real-time updates
 
