@@ -1,0 +1,1 @@
+Go through the entire build, and look for features I asked for but weren't implemented and implement them. Look for other bugs, issues, logic issues and inconsitencies and fix all of them.
