@@ -15,6 +15,7 @@ A living document tracking what's shipped, what works, and what's pending.
 - Client-side profile row creation fallback (for when DB trigger fails silently on signup)
 - Password reset screen (redirected from Supabase reset email)
 - **Auth loading bug fix** — resolved infinite spinner; SSO null `INITIAL_SESSION` handled
+- **Merge AppWare Account** — "Merge AppWare Account" card in More/Settings. Shows connected sign-in identities; "Link Google Account" button calls `supabase.auth.linkIdentity({ provider: 'google' })` to link Google to the current account so users can sign in from either method
 
 ### Onboarding
 - Multi-step flow: sign-in/sign-up → profile setup (username, avatar) → create or join a household
