@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import { supabase } from '../lib/supabase'
+import type { UserIdentity } from '@supabase/supabase-js'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 import NavBar from '../components/ui/NavBar'
@@ -24,6 +25,27 @@ export default function More() {
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const [identities, setIdentities] = useState<UserIdentity[]>([])
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [linkMsg, setLinkMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.identities) setIdentities(user.identities)
+    })
+  }, [])
+
+  async function linkGoogle() {
+    setLinkLoading(true)
+    setLinkMsg(null)
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: import.meta.env.VITE_APP_URL || window.location.origin },
+    })
+    setLinkLoading(false)
+    if (error) setLinkMsg({ ok: false, text: error.message })
+  }
 
   // Household management
   const [myHouseholds, setMyHouseholds] = useState<HouseholdRow[]>([])
@@ -48,7 +70,7 @@ export default function More() {
     if (data) {
       setMyHouseholds(
         data
-          .map((row: { households: HouseholdRow | null }) => row.households)
+          .map((row: { households: HouseholdRow | HouseholdRow[] | null }) => Array.isArray(row.households) ? row.households[0] ?? null : row.households)
           .filter((h): h is HouseholdRow => h !== null)
       )
     }

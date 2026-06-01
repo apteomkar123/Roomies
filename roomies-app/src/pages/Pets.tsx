@@ -9,7 +9,6 @@ import type { PetLog } from '../types'
 import { format, startOfDay } from 'date-fns'
 
 const STANDARD_ACTIONS = ['Morning Feed', 'Evening Feed', 'Daily Walk', 'Medication Administered'] as const
-type StandardAction = typeof STANDARD_ACTIONS[number]
 const ACTION_ICONS: Record<string, string> = {
   'Morning Feed': '🌅',
   'Evening Feed': '🌙',

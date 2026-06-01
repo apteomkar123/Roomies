@@ -158,7 +158,7 @@ export default function Chores() {
         <GlassPanel style={{ padding: 20, marginBottom: 20, overflowX: 'auto' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>📅 Chore Calendar</div>
           <div style={{ display: 'flex', gap: 10, minWidth: 'max-content' }}>
-            {Array.from({ length: 14 }, (_, i) => addDays(new Date(), i)).map(day => {
+            {Array.from({ length: 14 }, (_, i) => addDays(new Date(), i)).map((day, i) => {
               const dayAssignments = upcomingAssignments.filter(a => isSameDay(new Date(a.due_date), day))
               const isToday = i === 0
               return (
