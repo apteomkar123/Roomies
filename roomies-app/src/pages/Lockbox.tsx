@@ -6,10 +6,15 @@ import GlassPanel from '../components/ui/GlassPanel'
 import NavBar from '../components/ui/NavBar'
 import type { LockboxSecret } from '../types'
 
+function isWifiSecret(keyName: string) {
+  return /wi.?fi|wireless|network\s*pass|wifi\s*pass/i.test(keyName)
+}
+
 export default function Lockbox() {
   const { household } = useHousehold()
   const [items, setItems] = useState<LockboxSecret[]>([])
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
+  const [copied, setCopied] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [keyName, setKeyName] = useState('')
   const [value, setValue] = useState('')
@@ -41,7 +46,21 @@ export default function Lockbox() {
     load()
   }
 
-  const toggle = (id: string) => setRevealed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  const toggle = (id: string) => setRevealed(prev => {
+    const n = new Set(prev)
+    if (n.has(id)) n.delete(id); else n.add(id)
+    return n
+  })
+
+  async function copyAndConnect(password: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(password)
+      setCopied(id)
+      setTimeout(() => setCopied(null), 2500)
+    } catch {
+      // clipboard not available
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
@@ -53,7 +72,10 @@ export default function Lockbox() {
           <h1 style={{ fontWeight: 900, fontSize: 28, margin: 0, letterSpacing: '-0.5px' }}>Lockbox</h1>
           <div style={{ color: '#6B7280', fontSize: 14 }}>Shared household secrets</div>
         </div>
-        <button onClick={() => setShowAdd(!showAdd)} style={{ background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', border: 'none', borderRadius: 14, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button
+          onClick={() => setShowAdd(!showAdd)}
+          style={{ background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', border: 'none', borderRadius: 14, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
           + Add
         </button>
       </div>
@@ -72,22 +94,61 @@ export default function Lockbox() {
 
       {items.map(item => {
         const hidden = item.is_restricted && !revealed.has(item.id)
+        const isWifi = isWifiSecret(item.key_name)
+        const isRevealed = revealed.has(item.id)
         return (
           <GlassPanel key={item.id} style={{ padding: 20, marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{item.key_name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  {isWifi && <span style={{ fontSize: 16 }}>📶</span>}
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>{item.key_name}</div>
+                </div>
                 <div style={{ fontFamily: 'monospace', fontSize: 15, color: hidden ? '#D1D5DB' : '#111827', wordBreak: 'break-all' }}>
                   {hidden ? '•'.repeat(16) : item.value}
                 </div>
+                {/* WiFi connect controls */}
+                {isWifi && isRevealed && !hidden && (
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => copyAndConnect(item.value, item.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: 'none', background: copied === item.id ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.1)', color: copied === item.id ? '#059669' : '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+                    >
+                      {copied === item.id ? '✓ Copied!' : '📋 Copy Password'}
+                    </button>
+                    <a
+                      href="App-Prefs:WIFI"
+                      onClick={e => {
+                        // Fallback for non-iOS: try android settings intent
+                        if (!/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+                          e.preventDefault()
+                          // Android deep link attempt
+                          window.location.href = 'intent://settings/wifi#Intent;scheme=android-app;package=com.android.settings;end'
+                        }
+                        copyAndConnect(item.value, item.id)
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(37,99,235,0.25)', background: 'transparent', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, textDecoration: 'none' }}
+                    >
+                      📡 Open Wi-Fi Settings
+                    </a>
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
                 {item.is_restricted && (
-                  <button onClick={() => toggle(item.id)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+                  <button
+                    onClick={() => toggle(item.id)}
+                    style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+                  >
                     {hidden ? '👁 Reveal' : '🙈 Hide'}
                   </button>
                 )}
-                <button onClick={() => deleteSecret(item.id)} style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>✕</button>
+                <button
+                  onClick={() => deleteSecret(item.id)}
+                  style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+                >
+                  ✕
+                </button>
               </div>
             </div>
           </GlassPanel>

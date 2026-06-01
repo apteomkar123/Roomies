@@ -19,7 +19,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState(0)
   const prevActive = useRef(false)
 
-  const active = !!user && !!profile?.active_household_id && profile?.has_completed_roomies_tutorial === false
+  const active = !!user && !!profile?.active_household_id && !profile?.has_completed_roomies_tutorial
 
   // Reset to step 0 whenever tutorial becomes active (e.g. after rerun)
   useEffect(() => {

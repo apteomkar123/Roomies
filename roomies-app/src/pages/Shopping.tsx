@@ -33,6 +33,14 @@ export default function Shopping() {
   async function addItem() {
     if (!title.trim() || !household) return
     await supabase.from('shopping_items').insert({ household_id: household.id, added_by: user!.id, title: title.trim(), quantity: qty, urgent })
+    // Sync with Hungry
+    supabase.from('cross_app_activity').insert({
+      user_id: user!.id,
+      app: 'roomies',
+      activity_type: 'shopping_item_added',
+      is_public: false,
+      payload: { household_id: household.id, item: title.trim(), quantity: qty, urgent },
+    }).then(() => {})
     setTitle(''); setQty('1'); setUrgent(false); load()
   }
 

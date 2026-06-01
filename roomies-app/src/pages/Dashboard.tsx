@@ -10,7 +10,7 @@ import type { Booking, LockboxSecret, PetLog, PresenceStatus } from '../types'
 import { format, isSameDay, startOfDay } from 'date-fns'
 
 const PRESENCE_OPTIONS: PresenceStatus[] = ['Available', 'Sleeping', 'Quiet Hours / Studying', 'Work From Home', 'Away']
-const RESOURCES = ['Washing Machine', 'Dryer', 'Parking Bay A', 'Parking Bay B', 'BBQ', 'Rooftop']
+const DEFAULT_RESOURCES = ['Washing Machine', 'Dryer', 'Parking Bay A', 'Parking Bay B', 'BBQ', 'Rooftop']
 const PET_ACTIONS = ['Morning Feed', 'Evening Feed', 'Daily Walk', 'Medication Administered'] as const
 
 export default function Dashboard() {
@@ -24,12 +24,21 @@ export default function Dashboard() {
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
   const [petName, setPetName] = useState('Buddy')
   const [buzzing, setBuzzing] = useState(false)
+  const [customResources, setCustomResources] = useState<string[]>([])
+  const [newResourceName, setNewResourceName] = useState('')
+  const [showAddResource, setShowAddResource] = useState(false)
 
   useEffect(() => {
     const me = presences.find(p => p.profile_id === user?.id)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (me) setMyPresence(me.status)
   }, [presences, user])
+
+  useEffect(() => {
+    if (!household) return
+    const stored = localStorage.getItem(`custom-resources-${household.id}`)
+    if (stored) setCustomResources(JSON.parse(stored))
+  }, [household?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!household) return
@@ -78,6 +87,27 @@ export default function Dashboard() {
     const end   = new Date(); end.setHours(hour + 1, 0, 0, 0)
     await supabase.from('bookings').insert({ household_id: household.id, booked_by: user!.id, resource_name: resource, start_time: start.toISOString(), end_time: end.toISOString() })
     loadBookings()
+  }
+
+  async function cancelSlot(bookingId: string) {
+    await supabase.from('bookings').delete().eq('id', bookingId)
+    loadBookings()
+  }
+
+  function addCustomResource() {
+    if (!newResourceName.trim() || !household) return
+    const updated = [...customResources, newResourceName.trim()]
+    setCustomResources(updated)
+    localStorage.setItem(`custom-resources-${household.id}`, JSON.stringify(updated))
+    setNewResourceName('')
+    setShowAddResource(false)
+  }
+
+  function removeCustomResource(name: string) {
+    if (!household) return
+    const updated = customResources.filter(r => r !== name)
+    setCustomResources(updated)
+    localStorage.setItem(`custom-resources-${household.id}`, JSON.stringify(updated))
   }
 
   function getBookingOwner(resource: string, hour: number) {
@@ -202,9 +232,27 @@ export default function Dashboard() {
         </div>
       </GlassPanel>
 
-      {/* Widget 2: Appliance Booker */}
+      {/* Widget 2: Utility Booker */}
       <GlassPanel id="tut-appliance" style={{ padding: 20, marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Appliance Booker</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Utility Booker</div>
+          <button onClick={() => setShowAddResource(v => !v)} style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', background: 'rgba(37,99,235,0.08)', border: 'none', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            + Add Utility
+          </button>
+        </div>
+        {showAddResource && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input
+              className="glass-input"
+              placeholder="Utility name (e.g. Gym, Pool)"
+              value={newResourceName}
+              onChange={e => setNewResourceName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addCustomResource()}
+              style={{ fontSize: 13 }}
+            />
+            <button onClick={addCustomResource} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', fontSize: 13 }}>Add</button>
+          </div>
+        )}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
             <thead>
@@ -216,9 +264,14 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {RESOURCES.map(res => (
+              {[...DEFAULT_RESOURCES, ...customResources].map(res => (
                 <tr key={res}>
-                  <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>{res}</td>
+                  <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+                    {res}
+                    {customResources.includes(res) && (
+                      <button onClick={() => removeCustomResource(res)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 11, padding: 0 }}>✕</button>
+                    )}
+                  </td>
                   {[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].map(h => {
                     const booking = getBookingOwner(res, h)
                     const color = booking ? (profileColorMap[booking.booked_by] ?? '#2563EB') : undefined
@@ -226,13 +279,16 @@ export default function Dashboard() {
                     return (
                       <td key={h} style={{ padding: 3, textAlign: 'center' }}>
                         <div
-                          onClick={() => !booking && bookSlot(res, h)}
-                          title={booking ? `Booked by ${booking.profiles?.username}` : 'Click to book'}
+                          onClick={() => {
+                            if (isMe) cancelSlot(booking!.id)
+                            else if (!booking) bookSlot(res, h)
+                          }}
+                          title={isMe ? 'Tap to cancel your booking' : booking ? `Booked by ${booking.profiles?.username}` : 'Tap to book'}
                           style={{
                             width: 22, height: 22, borderRadius: 6,
                             background: color ? color + '33' : 'rgba(0,0,0,0.05)',
                             border: color ? `1.5px solid ${color}` : '1.5px solid transparent',
-                            cursor: booking ? 'default' : 'pointer',
+                            cursor: booking && !isMe ? 'default' : 'pointer',
                             margin: '0 auto',
                             boxShadow: isMe ? `0 0 6px ${color}88` : undefined,
                             transition: 'all 0.15s',

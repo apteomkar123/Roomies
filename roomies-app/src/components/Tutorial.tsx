@@ -16,12 +16,12 @@ const STEPS: Step[] = [
     desc: 'Tap a status to broadcast it to your roommates. Setting "Away" automatically pauses your chore rotation.' },
   { route: '/', elementId: 'tut-buzz', title: 'Buzz Deck', side: 'top',
     desc: 'One tap fires a Trash or Quiet Hours alert to everyone in the house instantly.' },
-  { route: '/', elementId: 'tut-appliance', title: 'Appliance Booker', side: 'top',
-    desc: 'Claim hourly slots for shared appliances. The colour-coded grid shows exactly who\'s booked what.' },
+  { route: '/', elementId: 'tut-appliance', title: 'Utility Booker', side: 'top',
+    desc: 'Claim hourly slots for shared utilities. The colour-coded grid shows exactly who\'s booked what. Tap your own slot to cancel it.' },
   { route: '/', elementId: 'tut-pets', title: 'Pet Tracker', side: 'top',
-    desc: 'Log feeds, walks, and meds. Every action is timestamped with your name so nothing gets missed.' },
+    desc: 'Log feeds, walks, and meds. Tap your own entry to undo it. Add pet-specific chores on the Pet Care page.' },
   { route: '/', elementId: 'tut-lockbox', title: 'Property Lockbox', side: 'top',
-    desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap the eye icon to reveal secrets.' },
+    desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap Reveal — Wi-Fi secrets show a Copy & Connect button.' },
   { route: '/', elementId: 'tut-navbar', title: 'Navigation', side: 'top',
     desc: 'The floating capsule gives instant access to Chores, Finance, Notices, Bookings, Maintenance, and more.' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Fair Chore Rotation', side: 'bottom',
@@ -105,23 +105,30 @@ export default function Tutorial() {
   } : {}
 
   // Tooltip position
+  const TOOLTIP_H = 210
   let tipTop = 0
   let tipLeft = 0
   if (rect) {
     const gap = 18
     if (current.side === 'bottom') {
       tipTop = rect.bottom + pad + gap
+      // If it would go off the bottom, flip above
+      if (tipTop + TOOLTIP_H > window.innerHeight - 12) {
+        tipTop = rect.top - pad - gap - TOOLTIP_H
+      }
     } else {
-      tipTop = rect.top - pad - gap - 180
+      tipTop = rect.top - pad - gap - TOOLTIP_H
+      // If it would go off the top, flip below
+      if (tipTop < 12) {
+        tipTop = rect.bottom + pad + gap
+      }
     }
+    // Hard-clamp within viewport
+    tipTop = Math.max(12, Math.min(tipTop, window.innerHeight - TOOLTIP_H - 12))
     tipLeft = Math.max(12, Math.min(
       rect.left + rect.width / 2 - TOOLTIP_W / 2,
       window.innerWidth - TOOLTIP_W - 12
     ))
-    // Clamp vertically
-    if (tipTop < 12) tipTop = rect.bottom + pad + gap
-    if (tipTop > window.innerHeight - 180) tipTop = rect.top - pad - gap - 180
-    tipTop = Math.max(12, tipTop)
   }
 
   return (

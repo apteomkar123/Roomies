@@ -14,50 +14,48 @@ A living document tracking what's shipped, what works, and what's pending.
 - Google and Apple sign-in removed (replaced by AppWare SSO)
 - Client-side profile row creation fallback (for when DB trigger fails silently on signup)
 - Password reset screen (redirected from Supabase reset email)
-- **Auth loading bug fix** — resolved infinite spinner: 5-second timeout now stays alive until `fetchProfile` completes (handles degraded-network hangs); SSO null `INITIAL_SESSION` early-returns so it can't wipe user state set by a concurrent `SIGNED_IN` event
+- **Auth loading bug fix** — resolved infinite spinner; SSO null `INITIAL_SESSION` handled
 
 ### Onboarding
 - Multi-step flow: sign-in/sign-up → profile setup (username, avatar) → create or join a household
+- **Auto-import AppWare profile photo** on step 2 — shows "import or change" dialog automatically
+- **Onboarding redirect guard** — if user already has a household, skip onboarding entirely (no data loss)
+- **Blob URL bug fix** — photo upload failures no longer persist invalid blob: URLs to the DB
 - Avatar picker with DiceBear presets
 - Invite-code based household joining
-- iOS cursor glitch fix (disabled autocorrect/autocapitalize on inputs)
+- iOS cursor glitch fix
 
 ### Tutorial
-- **Interactive tutorial** — runs automatically on first login after onboarding; guides user through each feature by navigating to routes and spotlighting UI elements with an animated halo and message bubble
+- **Interactive tutorial** — runs automatically on first login after onboarding; fixed condition so null/undefined treated as not-completed
+- **Tutorial tooltip clamping** — tooltips never go off-screen; flip top/bottom automatically
 - Skip / dismiss marks tutorial complete
 - Re-run Tutorial button in Settings (More page)
 - Confetti on finish
 
 ### Dashboard
 - Roommate presence status (Available / Sleeping / Quiet Hours / WFH / Away) — real-time via Supabase Realtime
-- **#11 Grocery Gig Status** — roommate cards now show `custom_text` (e.g. "🛒 At Whole Foods") set by Hungry's Personal Shopper mode
-- **#7 Who's Home? Shopping Alerts** — amber banner shown when any roommate has a `custom_text` starting with 🛒, prompting others to add items to the shared list
-- Resource booking widget (today's bookings shown)
+- **Utility Booker** (renamed from Appliance Booker) — tap your own booking to cancel it; add custom utilities via "+ Add Utility" stored per household in localStorage
 - Pet log quick actions widget
 - Lockbox secret reveal widget
 - "Buzz in" button for common entry intercom
 
 ### Chores
-- Chore list with rotation tracking (`useChoreRotation` hook)
+- Chore list with rotation tracking
 - Assign chores to household members
 - Mark chores complete
-- **#2 Chore-Sync Anthems** — marking a chore done writes a `chore_completed` event with `bpm_hint` (difficulty × 30 + 60) to `cross_app_activity`; Jukebox reads this and suggests a BPM-matched playlist
-- **#8 Victory Fanfare** — when all pending assignments are cleared, writes `all_chores_done` to `cross_app_activity`; Jukebox shows a celebration card
-- **#14 Nutritional BPM** — if Hungry logs a `nutrition_shortfall` in the last 24h, Chores sorts high-difficulty tasks first and shows a "💪 Boost Mode" badge
+- **Chore Calendar** — 14-day horizontal scrolling calendar showing upcoming assignments grouped by date
 
 ### Finance
 - Household expense tracking
-- Debt minimization algorithm (`useDebtMinimizer` hook)
-- Guest surcharge calculation (`useGuestSurcharge` hook)
-- **#13 Rent-Day Rewards** — when all household splits are settled, writes `all_bills_paid` to `cross_app_activity`; Jukebox shows a "Financial Freedom" celebration card
-- **#3 Smart Grocery Split (receive side)** — Hungry's HouseholdTab pushes grocery totals directly as `Groceries` transactions to this Finance ledger via Supabase
+- Debt minimization algorithm
+- Guest surcharge calculation
 
 ### Notices
 - Household notice board (post and view notices)
 - Real-time updates via Supabase Realtime
 
 ### Bookings
-- Shared resource booking (Washing Machine, Dryer, Parking Bay A/B, BBQ)
+- Shared resource booking (Washing Machine, Dryer, Parking Bay A/B, BBQ, Rooftop + custom)
 - Conflict detection
 - Real-time updates
 
@@ -68,6 +66,7 @@ A living document tracking what's shipped, what works, and what's pending.
 ### Lockbox
 - Shared household secrets / passwords
 - Reveal toggle per secret
+- **Wi-Fi connect** — secrets with "wifi" in the name show "Copy Password" + "Open Wi-Fi Settings" buttons when revealed
 
 ### Guests
 - Guest visit log (name, date, duration)
@@ -76,9 +75,12 @@ A living document tracking what's shipped, what works, and what's pending.
 ### Shopping
 - Shared household shopping list
 - Add / remove items, mark as bought
+- **Hungry sync** — adding items fires a cross_app_activity event to sync with Hungry
 
 ### Pets
-- Pet care log (Morning Feed, Evening Feed, Daily Walk, Medication)
+- Pet care log (Morning Feed, Evening Feed, Daily Walk, Medication Administered)
+- **Deselect actions** — tap your own logged action again to undo it
+- **Custom pet chores** — add pet-specific chores per pet (stored per household in localStorage)
 - Per-pet tracking within a household
 
 ### Karma Leaderboard
@@ -88,8 +90,13 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ### More / Settings
 - Navigation hub for secondary pages
+- **Multiple households** — view all households, switch active, join a new one via invite code, or create a new one; switches fire cross_app_activity for Hungry sync
 - Sign out
 - Re-run Tutorial
+
+### Readability
+- Removed default mobile tap-highlight across all elements
+- Darker gradient + text-shadow on active nav items for better contrast
 
 ---
 
@@ -97,6 +104,6 @@ A living document tracking what's shipped, what works, and what's pending.
 
 - Push notifications for notices, maintenance updates, bookings
 - Deep link sharing for individual resources
-- Native mobile app (iOS / Android)
+- Native mobile app (iOS / Android) — Wi-Fi auto-connect is best-effort on web
 - Google / Apple SSO (intentionally removed; AppWare SSO used instead)
-- Pre-existing ESLint errors across multiple files (no-explicit-any, set-state-in-effect, exhaustive-deps) — not blocking builds but flagged for cleanup
+- Pre-existing ESLint errors across multiple files (no-explicit-any, set-state-in-effect, exhaustive-deps) — not blocking builds

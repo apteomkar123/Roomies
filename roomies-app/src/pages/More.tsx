@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -9,6 +9,12 @@ import NavBar from '../components/ui/NavBar'
 
 type PhotoDialog = 'import-or-new' | 'apply-all' | null
 
+interface HouseholdRow { id: string; name: string; invite_code: string }
+
+function genInviteCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase()
+}
+
 export default function More() {
   const { profile, user, signOut, refreshProfile, updateAvatar } = useAuth()
   const { household } = useHousehold()
@@ -18,6 +24,98 @@ export default function More() {
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Household management
+  const [myHouseholds, setMyHouseholds] = useState<HouseholdRow[]>([])
+  const [showJoinNew, setShowJoinNew] = useState(false)
+  const [showCreateNew, setShowCreateNew] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [joinError, setJoinError] = useState('')
+  const [newHouseholdName, setNewHouseholdName] = useState('')
+  const [hhLoading, setHhLoading] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    loadMyHouseholds()
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadMyHouseholds() {
+    if (!user) return
+    const { data } = await supabase
+      .from('household_members')
+      .select('household_id, households(id, name, invite_code)')
+      .eq('profile_id', user.id)
+    if (data) {
+      setMyHouseholds(
+        data
+          .map((row: { households: HouseholdRow | null }) => row.households)
+          .filter((h): h is HouseholdRow => h !== null)
+      )
+    }
+  }
+
+  async function switchHousehold(hhId: string) {
+    if (!user || hhId === profile?.active_household_id) return
+    setHhLoading(true)
+    await supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id)
+    // Sync household switch with Hungry
+    supabase.from('cross_app_activity').insert({
+      user_id: user.id,
+      app: 'roomies',
+      activity_type: 'household_switched',
+      is_public: false,
+      payload: { new_household_id: hhId },
+    }).then(() => {})
+    await refreshProfile()
+    setHhLoading(false)
+  }
+
+  async function joinNewHousehold() {
+    if (!joinCode.trim() || !user) return
+    setHhLoading(true); setJoinError('')
+    const { data: hh } = await supabase
+      .from('households')
+      .select('id, name, invite_code')
+      .eq('invite_code', joinCode.toUpperCase())
+      .single()
+    if (!hh) { setJoinError('Code not found. Check with your roommate.'); setHhLoading(false); return }
+    const { error } = await supabase
+      .from('household_members')
+      .insert({ household_id: hh.id, profile_id: user.id, role: 'Tenant' })
+    if (error && error.code !== '23505') { setJoinError(error.message); setHhLoading(false); return }
+    await supabase.from('profiles').update({ active_household_id: hh.id }).eq('id', user.id)
+    await refreshProfile()
+    loadMyHouseholds()
+    setJoinCode(''); setShowJoinNew(false)
+    setHhLoading(false)
+  }
+
+  async function createNewHousehold() {
+    if (!newHouseholdName.trim() || !user) return
+    setHhLoading(true)
+    const hhId = crypto.randomUUID()
+    const invite = genInviteCode()
+    const { error } = await supabase
+      .from('households')
+      .insert({ id: hhId, name: newHouseholdName.trim(), invite_code: invite, created_by: user.id })
+    if (error) { setHhLoading(false); return }
+    await Promise.all([
+      supabase.from('household_members').insert({ household_id: hhId, profile_id: user.id, role: 'Administrator' }),
+      supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id),
+    ])
+    // Sync new household with Hungry
+    supabase.from('cross_app_activity').insert({
+      user_id: user.id,
+      app: 'roomies',
+      activity_type: 'household_created',
+      is_public: false,
+      payload: { household_id: hhId, name: newHouseholdName.trim() },
+    }).then(() => {})
+    await refreshProfile()
+    loadMyHouseholds()
+    setNewHouseholdName(''); setShowCreateNew(false)
+    setHhLoading(false)
+  }
 
   async function rerunTutorial() {
     if (!user) return
@@ -41,7 +139,6 @@ export default function More() {
       setPendingFile(file)
       setPhotoDialog('apply-all')
     } else {
-      // Chose a new Roomies-specific photo (declined import)
       setPhotoUploading(true)
       await updateAvatar(file, 'roomies')
       setPhotoUploading(false)
@@ -50,7 +147,6 @@ export default function More() {
   }
 
   async function handleImportGlobal() {
-    // Clear Roomies-specific override so global shows
     if (!user) return
     setPhotoUploading(true)
     await supabase.from('profiles').update({ roomies_avatar_url: null }).eq('id', user.id)
@@ -94,6 +190,82 @@ export default function More() {
 
       <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>More</h1>
 
+      {/* Household Switcher */}
+      <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>My Households</div>
+        {myHouseholds.map(hh => {
+          const isActive = hh.id === profile?.active_household_id
+          return (
+            <div key={hh.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: isActive ? '#2563EB' : '#374151' }}>
+                  {isActive && '🏠 '}{hh.name}
+                </div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace', letterSpacing: '0.1em' }}>{hh.invite_code}</div>
+              </div>
+              {isActive ? (
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', background: 'rgba(37,99,235,0.1)', borderRadius: 8, padding: '4px 10px' }}>Active</span>
+              ) : (
+                <button
+                  onClick={() => switchHousehold(hh.id)}
+                  disabled={hhLoading}
+                  style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+                >
+                  Switch
+                </button>
+              )}
+            </div>
+          )
+        })}
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+          <button
+            onClick={() => { setShowJoinNew(v => !v); setShowCreateNew(false) }}
+            style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+          >
+            + Join Another
+          </button>
+          <button
+            onClick={() => { setShowCreateNew(v => !v); setShowJoinNew(false) }}
+            style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+          >
+            + Create New
+          </button>
+        </div>
+
+        {showJoinNew && (
+          <div style={{ marginTop: 14 }}>
+            <input
+              className="glass-input"
+              placeholder="6-digit invite code"
+              value={joinCode}
+              onChange={e => setJoinCode(e.target.value.toUpperCase())}
+              style={{ marginBottom: 10, letterSpacing: '0.2em', textAlign: 'center', fontWeight: 800, fontSize: 18 }}
+              maxLength={6}
+            />
+            {joinError && <div style={{ color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{joinError}</div>}
+            <button onClick={joinNewHousehold} disabled={hhLoading || joinCode.length !== 6} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#10B981,#34D399)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>
+              {hhLoading ? '…' : 'Join Household'}
+            </button>
+          </div>
+        )}
+
+        {showCreateNew && (
+          <div style={{ marginTop: 14 }}>
+            <input
+              className="glass-input"
+              placeholder="Household name (e.g. Sunset Ave)"
+              value={newHouseholdName}
+              onChange={e => setNewHouseholdName(e.target.value)}
+              style={{ marginBottom: 10 }}
+            />
+            <button onClick={createNewHousehold} disabled={hhLoading || !newHouseholdName.trim()} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>
+              {hhLoading ? '…' : 'Create Household'}
+            </button>
+          </div>
+        )}
+      </GlassPanel>
+
       {household && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Invite Code</div>
@@ -111,11 +283,10 @@ export default function More() {
         ))}
       </div>
 
-      {/* Profile card with smart photo upload */}
+      {/* Profile card */}
       <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Avatar with single edit button */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               {photo
                 ? <img src={photo} alt="" style={{ width: 52, height: 52, borderRadius: 14, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }} />
@@ -140,21 +311,14 @@ export default function More() {
           <button onClick={signOut} style={{ padding: '10px 18px', borderRadius: 12, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Sign Out</button>
         </div>
 
-        {/* Smart photo dialog */}
         {photoDialog === 'import-or-new' && (
           <div style={{ marginTop: 14, padding: 14, background: 'rgba(99,102,241,0.06)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>You already have an AppWare profile photo. Use it here?</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={handleImportGlobal} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Yes, Use It
-              </button>
-              <button onClick={() => { setPhotoDialog(null); fileRef.current?.click() }} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Choose Different
-              </button>
+              <button onClick={handleImportGlobal} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, Use It</button>
+              <button onClick={() => { setPhotoDialog(null); fileRef.current?.click() }} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Choose Different</button>
             </div>
-            <button onClick={() => setPhotoDialog(null)} style={{ marginTop: 8, width: '100%', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Cancel
-            </button>
+            <button onClick={() => setPhotoDialog(null)} style={{ marginTop: 8, width: '100%', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
           </div>
         )}
 
@@ -162,16 +326,10 @@ export default function More() {
           <div style={{ marginTop: 14, padding: 14, background: 'rgba(99,102,241,0.06)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Apply this photo to all your AppWare apps?</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={handleApplyAll} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Yes, All Apps
-              </button>
-              <button onClick={handleApplyRoomiesOnly} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Just Roomies
-              </button>
+              <button onClick={handleApplyAll} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, All Apps</button>
+              <button onClick={handleApplyRoomiesOnly} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Just Roomies</button>
             </div>
-            <button onClick={() => { setPhotoDialog(null); setPendingFile(null) }} style={{ marginTop: 8, width: '100%', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Cancel
-            </button>
+            <button onClick={() => { setPhotoDialog(null); setPendingFile(null) }} style={{ marginTop: 8, width: '100%', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
           </div>
         )}
       </GlassPanel>

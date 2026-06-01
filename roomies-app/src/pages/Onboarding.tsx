@@ -80,11 +80,26 @@ export default function Onboarding() {
   const next = () => setStep(s => s + 1)
   const setError = (msg: string) => { setErr(msg); setTimeout(() => setErr(''), 3000) }
 
+  // Redirect if user already has a household (prevents re-running onboarding on every open)
+  useEffect(() => {
+    if (user && profile?.active_household_id) navigate('/', { replace: true })
+  }, [user, profile?.active_household_id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Advance past sign-in if OAuth callback fires after initial render
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (user && step === 1) setStep(2)
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-import AppWare profile photo when arriving at step 2
+  useEffect(() => {
+    if (step === 2 && profile?.avatar_url && !customPhotoUrl) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCustomPhotoUrl(profile.avatar_url)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPhotoDialog('import-or-new')
+    }
+  }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Step 1: Auth ──────────────────────────────────────────────
   async function handleAuth() {
@@ -152,17 +167,12 @@ export default function Onboarding() {
     if (!username.trim()) return setError('Username required')
     setLoading(true)
 
-    // Resolve final avatar URL
-    let finalAvatar = customPhotoUrl ?? selectedAvatar
-    if (pendingPhotoFile && photoDialog === null) {
-      // Upload pending file; dialog was shown, user chose (apply-all or roomies-only handled below)
-    }
-    if (pendingPhotoFile && photoDialog === 'apply-all') {
-      // User hasn't answered yet — just upload as roomies-only and proceed
-      const url = await uploadPhoto(pendingPhotoFile, 'roomies')
-      if (url) finalAvatar = url
-      setPendingPhotoFile(null)
-    } else if (pendingPhotoFile) {
+    // Start with DiceBear/real URL — never persist a blob: URL to the database
+    let finalAvatar = (customPhotoUrl && !customPhotoUrl.startsWith('blob:'))
+      ? customPhotoUrl
+      : selectedAvatar
+
+    if (pendingPhotoFile) {
       const url = await uploadPhoto(pendingPhotoFile, 'roomies')
       if (url) finalAvatar = url
       setPendingPhotoFile(null)

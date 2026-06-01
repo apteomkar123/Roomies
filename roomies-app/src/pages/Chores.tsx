@@ -8,7 +8,7 @@ import GlassPanel from '../components/ui/GlassPanel'
 import NavBar from '../components/ui/NavBar'
 import AvatarHalo from '../components/ui/AvatarHalo'
 import type { Chore, ChoreAssignment, KarmaMarketplace } from '../types'
-import { format } from 'date-fns'
+import { format, addDays, startOfDay, isSameDay } from 'date-fns'
 
 type ChoreRecurrence = 'Twice Weekly' | 'Weekly' | 'Bi-Weekly' | 'Monthly' | 'Quarterly'
 
@@ -17,6 +17,7 @@ export default function Chores() {
   const { household, memberProfiles } = useHousehold()
   const [chores, setChores] = useState<Chore[]>([])
   const [assignments, setAssignments] = useState<ChoreAssignment[]>([])
+  const [upcomingAssignments, setUpcomingAssignments] = useState<ChoreAssignment[]>([])
   const [marketplace, setMarketplace] = useState<KarmaMarketplace[]>([])
   const [showAddChore, setShowAddChore] = useState(false)
   const [title, setTitle] = useState('')
@@ -49,21 +50,30 @@ export default function Chores() {
 
   async function loadAll() {
     if (!household) return
-    const [{ data: c }, { data: a }, { data: m }] = await Promise.all([
+    const calendarEnd = addDays(new Date(), 14).toISOString()
+    const [{ data: c }, { data: a }, { data: m }, { data: upcoming }] = await Promise.all([
       supabase.from('chores').select('*').eq('household_id', household.id),
-      supabase.from('chore_assignments').select('*, profiles(username, avatar_url)').eq('status', 'Pending'),
+      supabase.from('chore_assignments').select('*, profiles(username, avatar_url), chores(title)').eq('status', 'Pending'),
       supabase.from('karma_marketplace').select('*, chore_assignments(*, chores(title))').eq('is_open', true),
+      supabase.from('chore_assignments')
+        .select('*, profiles(username, avatar_url), chores(title)')
+        .gte('due_date', startOfDay(new Date()).toISOString())
+        .lte('due_date', calendarEnd)
+        .order('due_date', { ascending: true }),
     ])
     const choreList = (c ?? []) as Chore[]
     setChores(choreList)
 
-    // Filter to only assignments/marketplace items belonging to this household's chores
     const choreIds = new Set(choreList.map(ch => ch.id))
     const assignmentList = ((a ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
     setAssignments(assignmentList)
 
     const assignmentIds = new Set(assignmentList.map(as => as.id))
     setMarketplace(((m ?? []) as KarmaMarketplace[]).filter(item => assignmentIds.has(item.assignment_id)))
+
+    // Calendar: all upcoming (pending/completed) assignments for the next 14 days
+    const upcomingList = ((upcoming ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
+    setUpcomingAssignments(upcomingList)
   }
 
   async function addChore() {
@@ -140,6 +150,56 @@ export default function Chores() {
             {['Twice Weekly','Weekly','Bi-Weekly','Monthly','Quarterly'].map(r => <option key={r}>{r}</option>)}
           </select>
           <button className="btn-blue" onClick={addChore}>Add Chore</button>
+        </GlassPanel>
+      )}
+
+      {/* Chore Calendar — next 14 days */}
+      {chores.length > 0 && (
+        <GlassPanel style={{ padding: 20, marginBottom: 20, overflowX: 'auto' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>📅 Chore Calendar</div>
+          <div style={{ display: 'flex', gap: 10, minWidth: 'max-content' }}>
+            {Array.from({ length: 14 }, (_, i) => addDays(new Date(), i)).map(day => {
+              const dayAssignments = upcomingAssignments.filter(a => isSameDay(new Date(a.due_date), day))
+              const isToday = i === 0
+              return (
+                <div
+                  key={i}
+                  style={{
+                    minWidth: 72, borderRadius: 14, padding: '10px 8px',
+                    background: isToday ? 'linear-gradient(135deg,rgba(37,99,235,0.12),rgba(139,92,246,0.12))' : 'rgba(0,0,0,0.03)',
+                    border: isToday ? '1.5px solid rgba(37,99,235,0.3)' : '1.5px solid transparent',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, color: isToday ? '#2563EB' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {format(day, 'EEE')}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: isToday ? '#2563EB' : '#374151', margin: '2px 0 8px' }}>
+                    {format(day, 'd')}
+                  </div>
+                  {dayAssignments.length === 0 ? (
+                    <div style={{ fontSize: 10, color: '#D1D5DB' }}>—</div>
+                  ) : (
+                    dayAssignments.map(a => (
+                      <div
+                        key={a.id}
+                        title={`${a.chores?.title ?? 'Chore'} → ${a.profiles?.username ?? '?'}`}
+                        style={{
+                          fontSize: 10, fontWeight: 700, marginBottom: 4,
+                          background: a.status === 'Completed' ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.1)',
+                          color: a.status === 'Completed' ? '#059669' : '#1D4ED8',
+                          borderRadius: 6, padding: '2px 5px',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 60,
+                        }}
+                      >
+                        {a.status === 'Completed' ? '✓ ' : ''}{a.chores?.title ?? 'Task'}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </GlassPanel>
       )}
 
