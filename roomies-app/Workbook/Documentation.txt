@@ -1,3 +1,37 @@
+SESSION LOG — 2026-06-01 (Changes.md — SSO + signup fix)
+==========================================================
+
+BUGS FIXED
+----------
+1. AppWare SSO login loop (persistent) — root cause identified and fixed.
+   With detectSessionInUrl:true (Supabase default), the library auto-detected
+   the hash tokens AND our code also called setSession() manually.  Supabase v2
+   rotates the refresh token on each use; the second call used an already-rotated
+   token, Supabase fired SIGNED_OUT, and the user landed back on the login screen.
+   Fix A — src/lib/supabase.ts: added detectSessionInUrl:false so only our
+   explicit setSession() call ever consumes the tokens.
+   Fix B — src/context/AuthContext.tsx: extract tokens and clear the URL hash
+   BEFORE subscribing to onAuthStateChange (preventing any race); removed the
+   5-second timeout during SSO (it could fire loading=false with null session on
+   slow networks); setSession() failure now explicitly resets all auth state so
+   the login screen shows immediately rather than hanging.
+
+2. "Database error saving new user" (persistent) — root cause was that the
+   appware_unified_schema.sql trigger had no exception block.  Any username
+   conflict or DB error caused the trigger to throw, rolling back the entire
+   auth.users INSERT and returning HTTP 500.
+   Fix — appware_unified_schema.sql: wrapped the entire INSERT in
+   BEGIN...EXCEPTION WHEN OTHERS THEN NULL; END; and added base_name sanitization.
+   The quick-fix migration is still in supabase/migrations/002_fix_trigger.sql.
+   ACTION REQUIRED: run 002_fix_trigger.sql (or the updated schema trigger) in
+   the Supabase SQL Editor to patch the live database.
+
+UNABLE TO DO
+------------
+None.
+
+----------------
+
 SESSION LOG — 2026-05-31 (CodeCheck + Changes.md)
 =================================================
 

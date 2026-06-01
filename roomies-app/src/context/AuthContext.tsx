@@ -49,55 +49,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const timeout = setTimeout(() => setLoading(false), 5000)
-
-    // Detect AppWare SSO tokens in the hash BEFORE subscribing so the
-    // INITIAL_SESSION "no user" event doesn't set loading=false and bounce
-    // the user back to the login screen before setSession resolves.
+    // Extract hash tokens BEFORE subscribing — with detectSessionInUrl:false the
+    // Supabase client will NOT auto-process the hash, so our manual setSession()
+    // below is the ONLY thing that consumes these tokens.  Doing this first and
+    // clearing the URL prevents any accidental double-processing that would rotate
+    // the refresh token and fire a SIGNED_OUT, causing the login loop.
     const hash = window.location.hash
-    const pendingSSO = hash.includes('access_token=')
+    const params = new URLSearchParams(hash.substring(1))
+    const at = params.get('access_token')
+    const rt = params.get('refresh_token')
+    const hasHashTokens = !!(at && rt)
 
-    // Must subscribe before getSession — in Supabase v2 PKCE, onAuthStateChange fires
-    // INITIAL_SESSION which triggers the URL code exchange for OAuth callbacks.
+    if (hasHashTokens) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+
+    // Safety timeout only for non-hash flows. INITIAL_SESSION fires almost
+    // immediately from localStorage; this is just a last-resort fallback.
+    const timeout = hasHashTokens ? undefined : setTimeout(() => setLoading(false), 10000)
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-      // During SSO the null INITIAL_SESSION can arrive after (or race with) the real
-      // SIGNED_IN fired by setSession — ignore it so we don't wipe the user state or
-      // cancel the safety timeout before the profile fetch has a chance to run.
-      if (event === 'INITIAL_SESSION' && !s?.user && pendingSSO) return
+      // During hash-token injection the first INITIAL_SESSION has no session yet.
+      // Skip it so we don't set loading=false and flash the login screen before
+      // the subsequent SIGNED_IN (or PASSWORD_RECOVERY) event arrives.
+      if (event === 'INITIAL_SESSION' && !s?.user && hasHashTokens) return
 
       setSession(s)
       setUser(s?.user ?? null)
       if (event === 'PASSWORD_RECOVERY') setNeedsPasswordReset(true)
       if (s?.user) {
-        // Keep the timeout alive until fetchProfile resolves — it acts as a failsafe
-        // in case the DB query hangs (e.g. degraded network).
         fetchProfile(s.user.id, s.user.email ?? undefined).finally(() => {
-          clearTimeout(timeout)
+          if (timeout) clearTimeout(timeout)
           setLoading(false)
         })
       } else {
-        clearTimeout(timeout)
+        if (timeout) clearTimeout(timeout)
         setProfile(null)
         setLoading(false)
       }
     })
 
-    // AppWare SSO: inject the hash tokens into the Supabase session
-    if (pendingSSO) {
-      const params = new URLSearchParams(hash.substring(1))
-      const at = params.get('access_token')
-      const rt = params.get('refresh_token')
-      if (at && rt) {
-        window.history.replaceState(null, '', window.location.pathname)
-        supabase.auth.setSession({ access_token: at, refresh_token: rt })
-          .catch(() => { clearTimeout(timeout); setLoading(false) })
-      }
+    if (hasHashTokens && at && rt) {
+      // Inject AppWare SSO or password-reset tokens.  On success Supabase fires
+      // SIGNED_IN / PASSWORD_RECOVERY which the handler above picks up.
+      // On failure (expired / wrong project) we reset to unauthenticated state.
+      supabase.auth.setSession({ access_token: at, refresh_token: rt })
+        .then(({ error }) => {
+          if (error) {
+            setSession(null)
+            setUser(null)
+            setProfile(null)
+            setLoading(false)
+          }
+        })
     }
 
-    // Fallback: if INITIAL_SESSION doesn't fire (no auth event), resolve loading
-    supabase.auth.getSession().catch(() => { clearTimeout(timeout); setLoading(false) })
-
-    return () => subscription.unsubscribe()
+    return () => {
+      if (timeout) clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signInWithEmail = async (email: string, password: string) => {

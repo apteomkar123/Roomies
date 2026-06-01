@@ -17,6 +17,7 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: false, // We process hash tokens manually in AuthContext
     },
     realtime: {
       params: { eventsPerSecond: 10 },

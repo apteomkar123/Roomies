@@ -7,8 +7,8 @@
 ### Auth
 - Email / password sign-up and sign-in
 - Google and Apple OAuth handled by the AppWare portal (removed from this app's sign-in screen)
-- **AppWare SSO** — "Sign in with AppWare" button redirects to the AppWare auth portal with the full current URL as `redirect_to`, so users are returned to the exact page they came from after authenticating; incoming hash tokens are automatically injected as a Supabase session
-- Auto-profile creation on sign-up — trigger wrapped in EXCEPTION block so any DB error is swallowed and never aborts the auth.users insert; client-side fallback in AuthContext creates the profile row on SIGNED_IN if the trigger silently skipped it
+- **AppWare SSO** — "Sign in with AppWare" redirects to the AppWare auth portal; incoming hash tokens are injected via explicit `setSession()` with `detectSessionInUrl:false` so Supabase never double-processes the tokens (double-processing was rotating the refresh token and firing SIGNED_OUT, causing the persistent login loop)
+- Auto-profile creation on sign-up — `appware_unified_schema.sql` trigger now wrapped in EXCEPTION block (fixes "Database error saving new user" 500); base_name sanitized; client-side fallback in AuthContext creates the profile on SIGNED_IN if the trigger silently skipped
 - Session persistence + auto token refresh
 - Sign out
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
