@@ -30,6 +30,8 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ### Dashboard
 - Roommate presence status (Available / Sleeping / Quiet Hours / WFH / Away) — real-time via Supabase Realtime
+- **#11 Grocery Gig Status** — roommate cards now show `custom_text` (e.g. "🛒 At Whole Foods") set by Hungry's Personal Shopper mode
+- **#7 Who's Home? Shopping Alerts** — amber banner shown when any roommate has a `custom_text` starting with 🛒, prompting others to add items to the shared list
 - Resource booking widget (today's bookings shown)
 - Pet log quick actions widget
 - Lockbox secret reveal widget
@@ -39,11 +41,16 @@ A living document tracking what's shipped, what works, and what's pending.
 - Chore list with rotation tracking (`useChoreRotation` hook)
 - Assign chores to household members
 - Mark chores complete
+- **#2 Chore-Sync Anthems** — marking a chore done writes a `chore_completed` event with `bpm_hint` (difficulty × 30 + 60) to `cross_app_activity`; Jukebox reads this and suggests a BPM-matched playlist
+- **#8 Victory Fanfare** — when all pending assignments are cleared, writes `all_chores_done` to `cross_app_activity`; Jukebox shows a celebration card
+- **#14 Nutritional BPM** — if Hungry logs a `nutrition_shortfall` in the last 24h, Chores sorts high-difficulty tasks first and shows a "💪 Boost Mode" badge
 
 ### Finance
 - Household expense tracking
 - Debt minimization algorithm (`useDebtMinimizer` hook)
 - Guest surcharge calculation (`useGuestSurcharge` hook)
+- **#13 Rent-Day Rewards** — when all household splits are settled, writes `all_bills_paid` to `cross_app_activity`; Jukebox shows a "Financial Freedom" celebration card
+- **#3 Smart Grocery Split (receive side)** — Hungry's HouseholdTab pushes grocery totals directly as `Groceries` transactions to this Finance ledger via Supabase
 
 ### Notices
 - Household notice board (post and view notices)

@@ -106,6 +106,15 @@ export default function Dashboard() {
     return (presences.find(p => p.profile_id === profileId)?.status ?? 'Available') as PresenceStatus
   }
 
+  const getCustomTextForMember = (profileId: string): string | null => {
+    return presences.find(p => p.profile_id === profileId)?.custom_text ?? null
+  }
+
+  const atStoreMembres = memberProfiles
+    .filter(p => p.id !== user?.id)
+    .map(p => ({ ...p, storeText: getCustomTextForMember(p.id) }))
+    .filter(p => p.storeText?.startsWith('🛒'))
+
   const profileColorMap: Record<string, string> = {}
   const colors = ['#2563EB','#10B981','#8B5CF6','#F59E0B','#F43F5E','#06B6D4']
   memberProfiles.forEach((p, i) => { profileColorMap[p.id] = colors[i % colors.length] })
@@ -138,18 +147,40 @@ export default function Dashboard() {
         </div>
       </GlassPanel>
 
+      {/* Feature #7: Who's Home? — grocery store alert */}
+      {atStoreMembres.length > 0 && (
+        <GlassPanel style={{ padding: '12px 16px', marginBottom: 16, background: 'rgba(245,158,11,0.08)', border: '1.5px solid rgba(245,158,11,0.3)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>🛒</span>
+            <div>
+              {atStoreMembres.map(p => (
+                <div key={p.id} style={{ fontSize: 13, fontWeight: 700, color: '#B45309', marginBottom: 2 }}>
+                  {p.username} is {(p.storeText ?? '').replace('🛒 ', '')} — anything to add to the shared list?
+                </div>
+              ))}
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Roommates */}
       {memberProfiles.length > 0 && (
         <GlassPanel style={{ padding: '14px 16px', marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Roommates</div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {memberProfiles.map(p => (
-              <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <AvatarHalo avatarUrl={p.roomies_avatar_url ?? p.avatar_url} status={getPresenceForMember(p.id)} size={40} username={p.username} />
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>{p.username}</div>
-                <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>⭐ {p.karma}</div>
-              </div>
-            ))}
+            {memberProfiles.map(p => {
+              const customText = getCustomTextForMember(p.id)
+              return (
+                <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <AvatarHalo avatarUrl={p.roomies_avatar_url ?? p.avatar_url} status={getPresenceForMember(p.id)} size={40} username={p.username} />
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>{p.username}</div>
+                  {customText && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#D97706', background: 'rgba(245,158,11,0.1)', borderRadius: 6, padding: '1px 6px', maxWidth: 80, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={customText}>{customText}</div>
+                  )}
+                  <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>⭐ {p.karma}</div>
+                </div>
+              )
+            })}
           </div>
         </GlassPanel>
       )}
