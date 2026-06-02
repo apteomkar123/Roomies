@@ -21,4 +21,4 @@ FIX ISSUES FOUND IN THE CHECKS.
 UPDATE [text](STATUS.md) with all the features that have been added, and all the feature you haven't been able to add (follow current format in the file)
 
 
-PUSH TO GIT AFTER ALL CHANGES HAVE BEEN MADE.
+DON'T PUSH TO GIT, PULL UP A TEST BROWSER WINDOW FOR THE USER TO TEST INSTEAD.

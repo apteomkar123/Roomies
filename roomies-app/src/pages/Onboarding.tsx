@@ -63,6 +63,7 @@ export default function Onboarding() {
   const [codeValid, setCodeValid] = useState<boolean | null>(null)
 
   // Step 4A state (creator)
+  const [householdType, setHouseholdType] = useState<'shared' | 'roomies-only'>('shared')
   const [quietStart, setQuietStart] = useState(22)
   const [quietEnd, setQuietEnd] = useState(8)
   const [hygieneScore, setHygieneScore] = useState(3)
@@ -234,14 +235,29 @@ export default function Onboarding() {
   async function handleFinishCreate() {
     setLoading(true)
     // Pre-generate the UUID so we never need a post-insert SELECT.
-    // The SELECT on a freshly created household is blocked by RLS because
-    // the user isn't yet in household_members and created_by may not be set.
     const hhId = crypto.randomUUID()
     const invite = genInviteCode()
     const { error } = await supabase
       .from('households')
       .insert({ id: hhId, name: `${username}'s Home`, invite_code: invite, created_by: user!.id })
     if (error) { setLoading(false); return setError(error.message) }
+
+    // For "roomies-only", create a separate Hungry household so Hungry
+    // doesn't share the Roomies household (hungry_household_id overrides active_household_id in Hungry).
+    let hungryHhId: string | null = null
+    if (householdType === 'roomies-only') {
+      hungryHhId = crypto.randomUUID()
+      await supabase.from('households').insert({
+        id: hungryHhId,
+        name: `${username}'s Pantry`,
+        invite_code: genInviteCode(),
+        created_by: user!.id,
+      })
+    }
+
+    const profileUpdate = hungryHhId
+      ? { active_household_id: hhId, hungry_household_id: hungryHhId }
+      : { active_household_id: hhId }
 
     await Promise.all([
       supabase.from('coliving_agreements').insert({
@@ -252,7 +268,8 @@ export default function Onboarding() {
         guest_overstay_rules: `Max ${maxGuests} consecutive nights`,
       }),
       supabase.from('household_members').insert({ household_id: hhId, profile_id: user!.id, role: 'Administrator' }),
-      supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user!.id),
+      ...(hungryHhId ? [supabase.from('household_members').insert({ household_id: hungryHhId, profile_id: user!.id, role: 'Administrator' })] : []),
+      supabase.from('profiles').update(profileUpdate).eq('id', user!.id),
     ])
     await refreshProfile()
     setLoading(false)
@@ -511,7 +528,30 @@ export default function Onboarding() {
         {step === 4 && path === 'create' && (
           <div>
             <h2 style={{ fontWeight: 800, fontSize: 24, margin: '0 0 6px', letterSpacing: '-0.5px' }}>House Rules</h2>
-            <p style={{ color: '#6B7280', fontSize: 14, marginBottom: 28 }}>Set the baseline for your home</p>
+            <p style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Set the baseline for your home</p>
+
+            {/* Household type */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Household Type</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setHouseholdType('shared')}
+                  style={{ flex: 1, padding: '12px 14px', borderRadius: 14, border: `2px solid ${householdType === 'shared' ? '#2563EB' : 'rgba(0,0,0,0.1)'}`, background: householdType === 'shared' ? 'rgba(37,99,235,0.08)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 13, color: householdType === 'shared' ? '#2563EB' : '#374151' }}>🍽️ Shared with Hungry</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>Grocery & pantry synced across apps</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHouseholdType('roomies-only')}
+                  style={{ flex: 1, padding: '12px 14px', borderRadius: 14, border: `2px solid ${householdType === 'roomies-only' ? '#8B5CF6' : 'rgba(0,0,0,0.1)'}`, background: householdType === 'roomies-only' ? 'rgba(139,92,246,0.08)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 13, color: householdType === 'roomies-only' ? '#8B5CF6' : '#374151' }}>🏠 Roomies Only</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>Keep Hungry household separate</div>
+                </button>
+              </div>
+            </div>
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>

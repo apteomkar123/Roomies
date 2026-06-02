@@ -11,6 +11,10 @@ import { format, addDays, startOfDay, isSameDay } from 'date-fns'
 
 type ChoreRecurrence = 'Twice Weekly' | 'Weekly' | 'Bi-Weekly' | 'Monthly' | 'Quarterly'
 
+const RECURRENCE_DAYS: Record<ChoreRecurrence, number> = {
+  'Twice Weekly': 3, 'Weekly': 7, 'Bi-Weekly': 14, 'Monthly': 30, 'Quarterly': 91,
+}
+
 export default function Chores() {
   const { user, profile } = useAuth()
   const { household, memberProfiles } = useHousehold()
@@ -77,8 +81,26 @@ export default function Chores() {
   async function addChore() {
     if (!title.trim() || !household) return
     setSaveError(null)
-    const { error } = await supabase.from('chores').insert({ household_id: household.id, title: title.trim(), recurrence })
-    if (error) { setSaveError(error.message); return }
+    const { data: newChore, error } = await supabase.from('chores')
+      .insert({ household_id: household.id, title: title.trim(), recurrence })
+      .select().single()
+    if (error || !newChore) { setSaveError(error?.message ?? 'Failed'); return }
+
+    // Auto-generate assignments for the next 30 days
+    const periodDays = RECURRENCE_DAYS[recurrence]
+    const activeMembers = memberProfiles.filter(m => !m.away)
+    if (activeMembers.length > 0) {
+      const assignments: { chore_id: string; assigned_to: string; due_date: string; status: string }[] = []
+      let due = startOfDay(new Date())
+      const end = addDays(new Date(), 30)
+      while (due <= end) {
+        const assignee = calcChoreAssignee(newChore as Chore, activeMembers, due)
+        if (assignee) assignments.push({ chore_id: newChore.id, assigned_to: assignee.id, due_date: due.toISOString(), status: 'Pending' })
+        due = addDays(due, periodDays)
+      }
+      if (assignments.length > 0) await supabase.from('chore_assignments').insert(assignments)
+    }
+
     setTitle(''); setShowAddChore(false); loadAll()
   }
 
@@ -188,6 +210,7 @@ export default function Chores() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>This Week's Rotation</div>
           {chores.map(chore => {
             const assignee = calcChoreAssignee(chore, memberProfiles)
+            const myAssignment = assignments.find(a => a.chore_id === chore.id && a.assigned_to === user?.id)
             return (
               <div key={chore.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                 <div style={{ flex: 1 }}>
@@ -199,6 +222,9 @@ export default function Chores() {
                     <AvatarHalo avatarUrl={assignee.avatar_url} status="Available" size={32} username={assignee.username} />
                     <span style={{ fontWeight: 700, fontSize: 13 }}>{assignee.username}</span>
                   </div>
+                )}
+                {myAssignment && (
+                  <button onClick={() => markDone(myAssignment.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, marginRight: 6 }}>✓</button>
                 )}
                 <button onClick={() => deleteChore(chore.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
               </div>

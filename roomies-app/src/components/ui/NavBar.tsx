@@ -5,7 +5,7 @@ import { useHousehold } from '../../context/HouseholdContext'
 import { supabase } from '../../lib/supabase'
 import {
   Home, CheckSquare, DollarSign, Bell, Calendar, Wrench,
-  ShoppingCart, PawPrint, Users, Lock, Star, Settings, X
+  ShoppingCart, PawPrint, Users, Lock, Star, Settings, X, Menu
 } from 'lucide-react'
 
 const NAV = [
@@ -69,6 +69,12 @@ export default function NavBar() {
     }
   }, [handleTouchStart, handleTouchEnd])
 
+  useEffect(() => {
+    const openNav = () => setNavOpen(true)
+    window.addEventListener('roomies-open-nav', openNav)
+    return () => window.removeEventListener('roomies-open-nav', openNav)
+  }, [])
+
   async function fetchBadges() {
     if (!household || !user) return
     const [{ data: notices }, { data: tickets }] = await Promise.all([
@@ -86,23 +92,15 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Roomies text trigger — always visible, fixed top-left */}
-      <span
+      {/* Hamburger button — desktop only (hidden on mobile via CSS) */}
+      <button
         id="tut-nav-open"
+        className="hamburger-nav-btn"
         onClick={() => setNavOpen(v => !v)}
-        style={{
-          position: 'fixed', top: 18, left: 16, zIndex: 60,
-          cursor: 'pointer',
-          fontFamily: 'Pacifico, cursive',
-          fontSize: 20,
-          color: '#2563EB',
-          lineHeight: 1,
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-        }}
+        aria-label="Open navigation"
       >
-        Roomies
-      </span>
+        <Menu size={22} />
+      </button>
 
       {/* Backdrop */}
       {navOpen && (

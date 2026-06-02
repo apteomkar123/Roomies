@@ -117,6 +117,26 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
 
+### Session 20 (2026-06-02)
+**Bug fixes:**
+- **Nav logo duplication** — removed the fixed "Roomies" Pacifico span that duplicated the Dashboard header logo in the top-left; the "Roomies" text in the Dashboard header now opens the nav when tapped (dispatches `roomies-open-nav` custom event); on desktop a hamburger icon button (hidden on mobile via CSS media query) replaces the fixed text trigger
+- **Chore calendar empty** — `addChore()` now auto-generates `chore_assignments` rows for the next 30 days at the correct recurrence interval, assigned to the right rotation person; calendar now shows entries immediately after a chore is added
+
+**Features added:**
+- **Done button on all chores** — the "This Week's Rotation" list now shows a ✓ button for each chore currently assigned to the logged-in user; taps `markDone()` directly without navigating to Pending Tasks
+- **Chore Calendar on Home** — a 7-day scrollable calendar showing upcoming assignments is now displayed on the Dashboard (replaces Utility Booker)
+- **Recent Bills on Home** — last 3 transactions shown as a summary widget on the Dashboard
+- **Pending Maintenance on Home** — open maintenance tickets are listed on the Dashboard (replaces Pet Care)
+- **Utility Booker removed from Home** — moved to the Bookings page only
+- **Pet Care removed from Home** — moved to the Pets page only
+
+### Session 19 (2026-06-02)
+**Bug fixes:**
+- **Lockbox TS6133** — removed unused `isRevealed` variable (line 166 of Lockbox.tsx); the `hidden` variable already covered the same logic; fixes the Netlify build error
+
+**Features added:**
+- **Household type choice on creation** — when creating a household in onboarding (Step 4A), users now see two options: "Shared with Hungry" (default — one household used by both apps) or "Roomies Only" (a separate Hungry pantry household is auto-created and set as `hungry_household_id` so Hungry uses a different context); the toggle uses blue/purple accent colours matching each app
+
 ### Session 18 (2026-06-02)
 **Bug fixes:**
 - **Nav: Roomies glass pill removed** — the top-left glass capsule button replaced with a plain "Roomies" text tap target (Pacifico font, no button styling); swipe-right already handles nav open on mobile; cleaner look

@@ -163,7 +163,6 @@ export default function Lockbox() {
       {items.map(item => {
         const hidden = item.is_restricted && !revealed.has(item.id)
         const isWifi = isWifiEntry(item.key_name)
-        const isRevealed = revealed.has(item.id)
         const icon = getKeyIcon(item.key_name)
         return (
           <GlassPanel key={item.id} style={{ padding: 20, marginBottom: 14 }}>

@@ -53,3 +53,10 @@ add an option for the owner of a household to delete the household in settings
 Take out the Roomies button in the top left, just tapping on the roomies text in the header should open the nav, or swiping right anywhere on the screen.
 Hitting the delete button on a household pulls up a delete all button currently, change that to a message that pops up and asks "are you sure you want to delete this household?". Don't clutter the house card there.
 Wifi Keys should have a "connect" button, which will connect you to the network
+Getting the following build error on netlify: src/pages/Lockbox.tsx:166:15 - error TS6133: 'isRevealed' is declared but its value is never read. 166         const isRevealed = revealed.has(item.id)
+When creating a household, the user should have the option to either create a shared household with Hungry or a Roomie specific household
+The Roomies logo is duplicated in the top left. Take out the one that's a button for the nav, the "Roomies" in the header should open up nav when it's tapped, in addition to opening when the user swipes to the right anywhere on screen. And a hamburger button on the top left ONLY FOR DESKTOP, NOT FOR MOBILE.
+Add a "done" button to all chores
+Chore calendar should show up on the home page, same with bills. Take the utility booker and pet care off the home page.
+Pending Maintenance work orders should also show up on the home page
+chores aren't showing up in the chore calendar. They get added as a card, but don't show up on the actual calendar with dates

@@ -95,6 +95,20 @@
   /* Nav is now a floating overlay drawer (like Hungry) — no sidebar offset needed */
   .app-content { margin-left: 0; }
 
+  /* Hamburger nav trigger: hidden on mobile, shown on desktop */
+  .hamburger-nav-btn {
+    display: none;
+    position: fixed; top: 16px; left: 16px; z-index: 60;
+    background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.5); border-radius: 12px;
+    padding: 8px; cursor: pointer; color: #2563EB;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.15);
+    align-items: center; justify-content: center;
+  }
+  @media (min-width: 768px) {
+    .hamburger-nav-btn { display: flex; }
+  }
+
   /* Keep legacy class names in case any page references them — no-op */
   .nav-sidebar, .nav-logo, .nav-item, .nav-icon, .nav-label, .nav-badge {}
 
