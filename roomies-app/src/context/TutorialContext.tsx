@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
-export const TUTORIAL_TOTAL = 9
+export const TUTORIAL_TOTAL = 11
 
 interface TutorialCtx {
   active: boolean

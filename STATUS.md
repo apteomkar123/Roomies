@@ -117,6 +117,13 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
 
+### Session 16 (2026-06-02)
+**Features added:**
+- **Shared Grocery List with Hungry** — Shopping page cross-reads from Hungry's `shopping_list` table for the same household. Hungry items appear with a HUNGRY badge. Toggling and deleting Hungry items updates the `shopping_list` table. Real-time subscription covers both tables.
+- **Floating Hungry-style Nav** — NavBar replaced with a Hungry-identical floating glass drawer: hamburger button (fixed top-left), backdrop overlay, swipe-right-from-edge gesture, swipe-left-to-close, Lucide icons, glass/blur styling matching Hungry. CSS sidebar and `app-content` offset removed.
+- **Tutorial: ecosystem steps** — 2 new tutorial steps added: Shared Grocery List with Hungry, Chore Sync Anthems with Jukebox. `TUTORIAL_TOTAL` updated to 11.
+- **Nav description update** — tutorial step for Navigation updated to reference the new floating drawer mechanism.
+
 ---
 
 ## 🔜 Can't Be Added Yet
