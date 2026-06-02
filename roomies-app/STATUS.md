@@ -95,6 +95,42 @@ A living document tracking what's shipped, what works, and what's pending.
 - Sign out
 - Re-run Tutorial
 
+### Navigation (Left Sidebar)
+- **Left sidebar nav** — replaced bottom capsule with a fixed left sidebar matching the Hungry app style; shows icons + labels on desktop, icons only on mobile (< 640px)
+- **All pages in sidebar** — Shopping, Pets, Guests, Lockbox, Karma all directly accessible from nav (no longer hidden under More)
+- **Unread badges** — red badge on Notices (unread count) and Maintenance (open tickets), auto-updated via Supabase Realtime
+
+### Bills (formerly Finance)
+- Renamed "Finance" to "Bills" with "Split bills" subheading throughout nav and page
+- **Delete transaction** — transaction author can delete their own transactions (with splits)
+
+### Chores
+- **Delete chore** — delete button on each chore in the rotation view; cascades to assignments
+
+### Notices
+- **Delete notice** — notice author can delete their own notices
+- **Save error display** — errors from Supabase shown inline instead of silent failure
+
+### Maintenance
+- **Delete ticket** — ticket reporter can delete (take back) their work order
+- **Save error display** — errors from Supabase shown inline
+
+### Pets
+- **Delete pet** — "Remove Pet" button removes pet and its custom chores from localStorage
+- Pet names persisted to localStorage per household so they survive page reloads
+
+### Lockbox
+- **Key type selector** — choose WiFi, Gate Code, Alarm Code, Door Code, Garage Code, or General when adding a key
+- **WiFi-specific form** — SSID and password fields shown when WiFi type selected
+- **Connect button** — copies password + routes to iOS/Android WiFi settings
+- Icon auto-detected per key type in list view
+
+### Settings (More page)
+- Renamed page heading to "Settings"
+- **Leave household** — "Leave" button with confirmation on each household; switches active household to next available
+- **Link AppWare** — replaced "Link Google Account" (which errored) with "Link AppWare Account" button linking to authappware.netlify.app
+- Removed secondary page grid (Shopping, Pets, etc.) — all now in sidebar nav directly
+
 ### Readability
 - Removed default mobile tap-highlight across all elements
 - Darker gradient + text-shadow on active nav items for better contrast

@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import type { Notice } from '../types'
 import { format } from 'date-fns'
 
@@ -25,6 +24,7 @@ export default function Notices() {
   const [body, setBody] = useState('')
   const [title, setTitle] = useState('')
   const [type, setType] = useState<NoticeType>('Permanent Memo')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!household) return
@@ -38,10 +38,10 @@ export default function Notices() {
   async function loadNotices() {
     if (!household) return
     const { data } = await supabase.from('notices').select('*, profiles(username), read_acks(user_id)').eq('household_id', household.id).order('created_at', { ascending: false })
-    const notices = (data ?? []) as Notice[]
-    setNotices(notices)
+    const list = (data ?? []) as Notice[]
+    setNotices(list)
     const myReads = new Set<string>()
-    for (const n of notices) {
+    for (const n of list) {
       if (n.read_acks?.some(r => r.user_id === user?.id)) myReads.add(n.id)
     }
     setReadIds(myReads)
@@ -52,16 +52,23 @@ export default function Notices() {
     setReadIds(prev => new Set(prev).add(noticeId))
   }
 
+  async function deleteNotice(id: string) {
+    await supabase.from('read_acks').delete().eq('notice_id', id)
+    await supabase.from('notices').delete().eq('id', id)
+    loadNotices()
+  }
+
   async function post() {
     if (!body.trim() || !household) return
-    await supabase.from('notices').insert({ household_id: household.id, author_id: user!.id, title: title || null, body, type })
+    setSaveError(null)
+    const { error } = await supabase.from('notices').insert({ household_id: household.id, author_id: user!.id, title: title || null, body, type })
+    if (error) { setSaveError(error.message); return }
     setBody(''); setTitle(''); setShowAdd(false); loadNotices()
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
@@ -75,6 +82,7 @@ export default function Notices() {
 
       {showAdd && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+          {saveError && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{saveError}</div>}
           <input className="glass-input" placeholder="Title (optional)" value={title} onChange={e => setTitle(e.target.value)} style={{ marginBottom: 12 }} />
           <textarea className="glass-input" placeholder="Notice body…" value={body} onChange={e => setBody(e.target.value)} rows={3} style={{ resize: 'vertical', marginBottom: 12 }} />
           <select value={type} onChange={e => setType(e.target.value as NoticeType)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 15, marginBottom: 14, fontFamily: 'inherit' }}>
@@ -89,6 +97,7 @@ export default function Notices() {
       {notices.map(n => {
         const st = TYPE_STYLE[n.type as NoticeType] ?? TYPE_STYLE['Permanent Memo']
         const read = readIds.has(n.id)
+        const isAuthor = n.author_id === user?.id
         return (
           <GlassPanel key={n.id} style={{ padding: 20, marginBottom: 16, border: `1.5px solid ${read ? 'transparent' : 'rgba(37,99,235,0.2)'}`, opacity: read ? 0.8 : 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -96,7 +105,12 @@ export default function Notices() {
                 <span style={{ background: st.bg, color: st.color, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{st.label}</span>
                 {!read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563EB', display: 'inline-block' }} />}
               </div>
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(n.created_at), 'MMM d, h:mm a')}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(n.created_at), 'MMM d, h:mm a')}</span>
+                {isAuthor && (
+                  <button onClick={() => deleteNotice(n.id)} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
+                )}
+              </div>
             </div>
             {n.title && <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{n.title}</div>}
             <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{n.body}</div>

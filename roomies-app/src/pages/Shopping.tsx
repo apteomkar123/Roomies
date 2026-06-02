@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import type { ShoppingItem } from '../types'
 
 export default function Shopping() {
@@ -58,9 +57,9 @@ export default function Shopping() {
   const done = items.filter(i => i.purchased)
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
+
 
       <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>Shopping List</h1>
 

@@ -2,7 +2,6 @@ import { useHousehold } from '../context/HouseholdContext'
 import { useAuth } from '../context/AuthContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import AvatarHalo from '../components/ui/AvatarHalo'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -14,9 +13,9 @@ export default function Karma() {
   const ranked = [...memberProfiles].sort((a, b) => (b.karma ?? 0) - (a.karma ?? 0))
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
+
 
       <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 6px', letterSpacing: '-0.5px' }}>Karma</h1>
       <div style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Household leaderboard</div>

@@ -5,7 +5,6 @@ import { useHousehold } from '../context/HouseholdContext'
 import { useGuestSurcharge } from '../hooks/useGuestSurcharge'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import type { GuestLog, Transaction, CoLivingAgreement } from '../types'
 import { format, differenceInDays } from 'date-fns'
 
@@ -54,9 +53,9 @@ export default function Guests() {
   const maxNights = maxMatch ? parseInt(maxMatch[1]) : 3
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
+
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>

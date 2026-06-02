@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import { supabase } from '../lib/supabase'
-import type { UserIdentity } from '@supabase/supabase-js'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 
 type PhotoDialog = 'import-or-new' | 'apply-all' | null
 
@@ -19,35 +16,12 @@ function genInviteCode() {
 export default function More() {
   const { profile, user, signOut, refreshProfile, updateAvatar } = useAuth()
   const { household } = useHousehold()
-  const navigate = useNavigate()
 
   const [photoDialog, setPhotoDialog] = useState<PhotoDialog>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [identities, setIdentities] = useState<UserIdentity[]>([])
-  const [linkLoading, setLinkLoading] = useState(false)
-  const [linkMsg, setLinkMsg] = useState<{ ok: boolean; text: string } | null>(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.identities) setIdentities(user.identities)
-    })
-  }, [])
-
-  async function linkGoogle() {
-    setLinkLoading(true)
-    setLinkMsg(null)
-    const { error } = await supabase.auth.linkIdentity({
-      provider: 'google',
-      options: { redirectTo: import.meta.env.VITE_APP_URL || window.location.origin },
-    })
-    setLinkLoading(false)
-    if (error) setLinkMsg({ ok: false, text: error.message })
-  }
-
-  // Household management
   const [myHouseholds, setMyHouseholds] = useState<HouseholdRow[]>([])
   const [showJoinNew, setShowJoinNew] = useState(false)
   const [showCreateNew, setShowCreateNew] = useState(false)
@@ -55,6 +29,7 @@ export default function More() {
   const [joinError, setJoinError] = useState('')
   const [newHouseholdName, setNewHouseholdName] = useState('')
   const [hhLoading, setHhLoading] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -80,30 +55,36 @@ export default function More() {
     if (!user || hhId === profile?.active_household_id) return
     setHhLoading(true)
     await supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id)
-    // Sync household switch with Hungry
     supabase.from('cross_app_activity').insert({
-      user_id: user.id,
-      app: 'roomies',
-      activity_type: 'household_switched',
-      is_public: false,
+      user_id: user.id, app: 'roomies', activity_type: 'household_switched', is_public: false,
       payload: { new_household_id: hhId },
     }).then(() => {})
     await refreshProfile()
     setHhLoading(false)
   }
 
+  async function leaveHousehold(hhId: string) {
+    if (!user) return
+    setHhLoading(true)
+    await supabase.from('household_members').delete().eq('household_id', hhId).eq('profile_id', user.id)
+    // Switch active household if this was the active one
+    if (profile?.active_household_id === hhId) {
+      const remaining = myHouseholds.filter(h => h.id !== hhId)
+      const nextId = remaining[0]?.id ?? null
+      await supabase.from('profiles').update({ active_household_id: nextId }).eq('id', user.id)
+    }
+    await refreshProfile()
+    loadMyHouseholds()
+    setDeleteConfirm(null)
+    setHhLoading(false)
+  }
+
   async function joinNewHousehold() {
     if (!joinCode.trim() || !user) return
     setHhLoading(true); setJoinError('')
-    const { data: hh } = await supabase
-      .from('households')
-      .select('id, name, invite_code')
-      .eq('invite_code', joinCode.toUpperCase())
-      .single()
+    const { data: hh } = await supabase.from('households').select('id, name, invite_code').eq('invite_code', joinCode.toUpperCase()).single()
     if (!hh) { setJoinError('Code not found. Check with your roommate.'); setHhLoading(false); return }
-    const { error } = await supabase
-      .from('household_members')
-      .insert({ household_id: hh.id, profile_id: user.id, role: 'Tenant' })
+    const { error } = await supabase.from('household_members').insert({ household_id: hh.id, profile_id: user.id, role: 'Tenant' })
     if (error && error.code !== '23505') { setJoinError(error.message); setHhLoading(false); return }
     await supabase.from('profiles').update({ active_household_id: hh.id }).eq('id', user.id)
     await refreshProfile()
@@ -117,20 +98,14 @@ export default function More() {
     setHhLoading(true)
     const hhId = crypto.randomUUID()
     const invite = genInviteCode()
-    const { error } = await supabase
-      .from('households')
-      .insert({ id: hhId, name: newHouseholdName.trim(), invite_code: invite, created_by: user.id })
+    const { error } = await supabase.from('households').insert({ id: hhId, name: newHouseholdName.trim(), invite_code: invite, created_by: user.id })
     if (error) { setHhLoading(false); return }
     await Promise.all([
       supabase.from('household_members').insert({ household_id: hhId, profile_id: user.id, role: 'Administrator' }),
       supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id),
     ])
-    // Sync new household with Hungry
     supabase.from('cross_app_activity').insert({
-      user_id: user.id,
-      app: 'roomies',
-      activity_type: 'household_created',
-      is_public: false,
+      user_id: user.id, app: 'roomies', activity_type: 'household_created', is_public: false,
       payload: { household_id: hhId, name: newHouseholdName.trim() },
     }).then(() => {})
     await refreshProfile()
@@ -146,11 +121,8 @@ export default function More() {
   }
 
   function handlePhotoButton() {
-    if (profile?.avatar_url) {
-      setPhotoDialog('import-or-new')
-    } else {
-      fileRef.current?.click()
-    }
+    if (profile?.avatar_url) setPhotoDialog('import-or-new')
+    else fileRef.current?.click()
   }
 
   async function handleFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
@@ -197,20 +169,11 @@ export default function More() {
 
   const photo = profile?.roomies_avatar_url || profile?.avatar_url
 
-  const PAGES = [
-    { icon: '🛒', label: 'Shopping List',    path: '/shopping' },
-    { icon: '🐾', label: 'Pet Care',          path: '/pets'     },
-    { icon: '👥', label: 'Guest Log',         path: '/guests'   },
-    { icon: '🔒', label: 'Lockbox',           path: '/lockbox'  },
-    { icon: '📊', label: 'Karma Leaderboard', path: '/karma'    },
-  ]
-
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
 
-      <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>More</h1>
+      <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>Settings</h1>
 
       {/* Household Switcher */}
       <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
@@ -219,52 +182,45 @@ export default function More() {
           const isActive = hh.id === profile?.active_household_id
           return (
             <div key={hh.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: isActive ? '#2563EB' : '#374151' }}>
                   {isActive && '🏠 '}{hh.name}
                 </div>
                 <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace', letterSpacing: '0.1em' }}>{hh.invite_code}</div>
               </div>
-              {isActive ? (
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', background: 'rgba(37,99,235,0.1)', borderRadius: 8, padding: '4px 10px' }}>Active</span>
-              ) : (
-                <button
-                  onClick={() => switchHousehold(hh.id)}
-                  disabled={hhLoading}
-                  style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
-                >
-                  Switch
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {isActive ? (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', background: 'rgba(37,99,235,0.1)', borderRadius: 8, padding: '4px 10px' }}>Active</span>
+                ) : (
+                  <button onClick={() => switchHousehold(hh.id)} disabled={hhLoading} style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+                    Switch
+                  </button>
+                )}
+                {deleteConfirm === hh.id ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => leaveHousehold(hh.id)} disabled={hhLoading} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.15)', color: '#E11D48', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Leave</button>
+                    <button onClick={() => setDeleteConfirm(null)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,0.06)', color: '#6B7280', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setDeleteConfirm(hh.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Leave</button>
+                )}
+              </div>
             </div>
           )
         })}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-          <button
-            onClick={() => { setShowJoinNew(v => !v); setShowCreateNew(false) }}
-            style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
-          >
+          <button onClick={() => { setShowJoinNew(v => !v); setShowCreateNew(false) }} style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
             + Join Another
           </button>
-          <button
-            onClick={() => { setShowCreateNew(v => !v); setShowJoinNew(false) }}
-            style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
-          >
+          <button onClick={() => { setShowCreateNew(v => !v); setShowJoinNew(false) }} style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
             + Create New
           </button>
         </div>
 
         {showJoinNew && (
           <div style={{ marginTop: 14 }}>
-            <input
-              className="glass-input"
-              placeholder="6-digit invite code"
-              value={joinCode}
-              onChange={e => setJoinCode(e.target.value.toUpperCase())}
-              style={{ marginBottom: 10, letterSpacing: '0.2em', textAlign: 'center', fontWeight: 800, fontSize: 18 }}
-              maxLength={6}
-            />
+            <input className="glass-input" placeholder="6-digit invite code" value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} style={{ marginBottom: 10, letterSpacing: '0.2em', textAlign: 'center', fontWeight: 800, fontSize: 18 }} maxLength={6} />
             {joinError && <div style={{ color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{joinError}</div>}
             <button onClick={joinNewHousehold} disabled={hhLoading || joinCode.length !== 6} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#10B981,#34D399)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>
               {hhLoading ? '…' : 'Join Household'}
@@ -274,13 +230,7 @@ export default function More() {
 
         {showCreateNew && (
           <div style={{ marginTop: 14 }}>
-            <input
-              className="glass-input"
-              placeholder="Household name (e.g. Sunset Ave)"
-              value={newHouseholdName}
-              onChange={e => setNewHouseholdName(e.target.value)}
-              style={{ marginBottom: 10 }}
-            />
+            <input className="glass-input" placeholder="Household name (e.g. Sunset Ave)" value={newHouseholdName} onChange={e => setNewHouseholdName(e.target.value)} style={{ marginBottom: 10 }} />
             <button onClick={createNewHousehold} disabled={hhLoading || !newHouseholdName.trim()} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>
               {hhLoading ? '…' : 'Create Household'}
             </button>
@@ -296,15 +246,6 @@ export default function More() {
         </GlassPanel>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-        {PAGES.map(p => (
-          <GlassPanel key={p.path} onClick={() => navigate(p.path)} style={{ padding: 20, cursor: 'pointer', transition: 'transform 0.15s' }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>{p.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{p.label}</div>
-          </GlassPanel>
-        ))}
-      </div>
-
       {/* Profile card */}
       <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -316,11 +257,7 @@ export default function More() {
                     {profile?.username?.slice(0, 1).toUpperCase() ?? '?'}
                   </div>
               }
-              <button
-                onClick={handlePhotoButton}
-                disabled={photoUploading}
-                style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, background: '#6366f1', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 11, color: 'white', fontWeight: 900 }}
-              >
+              <button onClick={handlePhotoButton} disabled={photoUploading} style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, background: '#6366f1', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 11, color: 'white', fontWeight: 900 }}>
                 {photoUploading ? '…' : '✎'}
               </button>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChosen} />
@@ -364,50 +301,20 @@ export default function More() {
         </button>
       </GlassPanel>
 
-      {/* Merge AppWare Account */}
+      {/* Link AppWare */}
       <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Merge AppWare Account</div>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Link AppWare Account</div>
         <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>
-          Link another sign-in method to your account. Once linked, you can sign in with any connected method and all data stays in one place.
+          Connect your AppWare account to sync data across all AppWare apps — Roomies, Hungry, Jukebox, and more.
         </div>
-
-        {/* Connected identities */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-          {identities.map(id => (
-            <div key={id.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)' }}>
-              <span style={{ fontSize: 18 }}>{id.provider === 'google' ? '🟥' : '✉️'}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'capitalize' }}>{id.provider}</div>
-                <div style={{ fontSize: 11, color: '#9CA3AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {(id.identity_data as Record<string, string>)?.email ?? ''}
-                </div>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981' }}>Connected</span>
-            </div>
-          ))}
-        </div>
-
-        {!identities.some(id => id.provider === 'google') && (
-          <button
-            onClick={linkGoogle}
-            disabled={linkLoading}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '11px 0', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)', background: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            {linkLoading ? 'Redirecting…' : 'Link Google Account'}
-          </button>
-        )}
-
-        {linkMsg && (
-          <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, background: linkMsg.ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: linkMsg.ok ? '#10B981' : '#EF4444', border: `1px solid ${linkMsg.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
-            {linkMsg.text}
-          </div>
-        )}
+        <a
+          href="https://authappware.netlify.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}
+        >
+          🔗 Manage AppWare Account
+        </a>
       </GlassPanel>
     </div>
   )

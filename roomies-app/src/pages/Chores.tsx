@@ -5,7 +5,6 @@ import { useHousehold } from '../context/HouseholdContext'
 import { calcChoreAssignee } from '../hooks/useChoreRotation'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import AvatarHalo from '../components/ui/AvatarHalo'
 import type { Chore, ChoreAssignment, KarmaMarketplace } from '../types'
 import { format, addDays, startOfDay, isSameDay } from 'date-fns'
@@ -23,8 +22,8 @@ export default function Chores() {
   const [title, setTitle] = useState('')
   const [recurrence, setRecurrence] = useState<ChoreRecurrence>('Weekly')
   const [nutritionBoostActive, setNutritionBoostActive] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Feature #14: Nutritional BPM — if Hungry flagged a shortfall, sort high-difficulty chores first
   useEffect(() => {
     if (!user) return
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -71,15 +70,22 @@ export default function Chores() {
     const assignmentIds = new Set(assignmentList.map(as => as.id))
     setMarketplace(((m ?? []) as KarmaMarketplace[]).filter(item => assignmentIds.has(item.assignment_id)))
 
-    // Calendar: all upcoming (pending/completed) assignments for the next 14 days
     const upcomingList = ((upcoming ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
     setUpcomingAssignments(upcomingList)
   }
 
   async function addChore() {
     if (!title.trim() || !household) return
-    await supabase.from('chores').insert({ household_id: household.id, title: title.trim(), recurrence })
+    setSaveError(null)
+    const { error } = await supabase.from('chores').insert({ household_id: household.id, title: title.trim(), recurrence })
+    if (error) { setSaveError(error.message); return }
     setTitle(''); setShowAddChore(false); loadAll()
+  }
+
+  async function deleteChore(id: string) {
+    await supabase.from('chore_assignments').delete().eq('chore_id', id)
+    await supabase.from('chores').delete().eq('id', id)
+    loadAll()
   }
 
   async function markDone(id: string) {
@@ -90,7 +96,6 @@ export default function Chores() {
     await supabase.from('chore_assignments').update({ status: 'Completed', completed_at: new Date().toISOString() }).eq('id', id)
     if (profile) await supabase.from('profiles').update({ karma: (profile.karma ?? 100) + 10 }).eq('id', user!.id)
 
-    // Feature #2: Chore-Sync Anthems — signal Jukebox to queue BPM-matched playlist
     supabase.from('cross_app_activity').insert({
       user_id: user!.id,
       app: 'roomies',
@@ -99,7 +104,6 @@ export default function Chores() {
       payload: { chore_title: choreTitle, difficulty: choreDifficulty, bpm_hint: choreDifficulty * 30 + 60 },
     }).then(() => {})
 
-    // Feature #8: Victory Fanfare — if all pending assignments are now done, signal celebration
     const remaining = assignments.filter(a => a.id !== id && a.status === 'Pending')
     if (remaining.length === 0) {
       supabase.from('cross_app_activity').insert({
@@ -128,9 +132,8 @@ export default function Chores() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
@@ -142,9 +145,9 @@ export default function Chores() {
         </button>
       </div>
 
-      {/* Add chore panel */}
       {showAddChore && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+          {saveError && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{saveError}</div>}
           <input className="glass-input" placeholder="Chore name (e.g. Take out trash)" value={title} onChange={e => setTitle(e.target.value)} style={{ marginBottom: 12 }} />
           <select value={recurrence} onChange={e => setRecurrence(e.target.value as ChoreRecurrence)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 15, marginBottom: 14, fontFamily: 'inherit' }}>
             {['Twice Weekly','Weekly','Bi-Weekly','Monthly','Quarterly'].map(r => <option key={r}>{r}</option>)}
@@ -153,7 +156,6 @@ export default function Chores() {
         </GlassPanel>
       )}
 
-      {/* Chore Calendar — next 14 days */}
       {chores.length > 0 && (
         <GlassPanel style={{ padding: 20, marginBottom: 20, overflowX: 'auto' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>📅 Chore Calendar</div>
@@ -162,36 +164,14 @@ export default function Chores() {
               const dayAssignments = upcomingAssignments.filter(a => isSameDay(new Date(a.due_date), day))
               const isToday = i === 0
               return (
-                <div
-                  key={i}
-                  style={{
-                    minWidth: 72, borderRadius: 14, padding: '10px 8px',
-                    background: isToday ? 'linear-gradient(135deg,rgba(37,99,235,0.12),rgba(139,92,246,0.12))' : 'rgba(0,0,0,0.03)',
-                    border: isToday ? '1.5px solid rgba(37,99,235,0.3)' : '1.5px solid transparent',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: isToday ? '#2563EB' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {format(day, 'EEE')}
-                  </div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: isToday ? '#2563EB' : '#374151', margin: '2px 0 8px' }}>
-                    {format(day, 'd')}
-                  </div>
+                <div key={i} style={{ minWidth: 72, borderRadius: 14, padding: '10px 8px', background: isToday ? 'linear-gradient(135deg,rgba(37,99,235,0.12),rgba(139,92,246,0.12))' : 'rgba(0,0,0,0.03)', border: isToday ? '1.5px solid rgba(37,99,235,0.3)' : '1.5px solid transparent', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: isToday ? '#2563EB' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{format(day, 'EEE')}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: isToday ? '#2563EB' : '#374151', margin: '2px 0 8px' }}>{format(day, 'd')}</div>
                   {dayAssignments.length === 0 ? (
                     <div style={{ fontSize: 10, color: '#D1D5DB' }}>—</div>
                   ) : (
                     dayAssignments.map(a => (
-                      <div
-                        key={a.id}
-                        title={`${a.chores?.title ?? 'Chore'} → ${a.profiles?.username ?? '?'}`}
-                        style={{
-                          fontSize: 10, fontWeight: 700, marginBottom: 4,
-                          background: a.status === 'Completed' ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.1)',
-                          color: a.status === 'Completed' ? '#059669' : '#1D4ED8',
-                          borderRadius: 6, padding: '2px 5px',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 60,
-                        }}
-                      >
+                      <div key={a.id} title={`${a.chores?.title ?? 'Chore'} → ${a.profiles?.username ?? '?'}`} style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, background: a.status === 'Completed' ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.1)', color: a.status === 'Completed' ? '#059669' : '#1D4ED8', borderRadius: 6, padding: '2px 5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 60 }}>
                         {a.status === 'Completed' ? '✓ ' : ''}{a.chores?.title ?? 'Task'}
                       </div>
                     ))
@@ -203,7 +183,6 @@ export default function Chores() {
         </GlassPanel>
       )}
 
-      {/* Rotation view for next 7 days */}
       {chores.length > 0 && (
         <GlassPanel id="tut-rotation" style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>This Week's Rotation</div>
@@ -211,23 +190,23 @@ export default function Chores() {
             const assignee = calcChoreAssignee(chore, memberProfiles)
             return (
               <div key={chore.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{chore.title}</div>
                   <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{chore.recurrence}</div>
                 </div>
                 {assignee && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
                     <AvatarHalo avatarUrl={assignee.avatar_url} status="Available" size={32} username={assignee.username} />
                     <span style={{ fontWeight: 700, fontSize: 13 }}>{assignee.username}</span>
                   </div>
                 )}
+                <button onClick={() => deleteChore(chore.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
               </div>
             )
           })}
         </GlassPanel>
       )}
 
-      {/* Pending assignments */}
       {assignments.length > 0 && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -238,11 +217,9 @@ export default function Chores() {
               </div>
             )}
           </div>
-          {/* Feature #14: Sort high-difficulty chores first when nutrition shortfall detected */}
           {[...assignments].sort((a, b) =>
             nutritionBoostActive
-              ? (chores.find(c => c.id === b.chore_id)?.difficulty ?? 2) -
-                (chores.find(c => c.id === a.chore_id)?.difficulty ?? 2)
+              ? (chores.find(c => c.id === b.chore_id)?.difficulty ?? 2) - (chores.find(c => c.id === a.chore_id)?.difficulty ?? 2)
               : 0
           ).map(a => {
             const isMe = a.assigned_to === user?.id
@@ -264,7 +241,6 @@ export default function Chores() {
         </GlassPanel>
       )}
 
-      {/* Karma marketplace */}
       {marketplace.length > 0 && (
         <GlassPanel id="tut-marketplace" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Karma Marketplace</div>

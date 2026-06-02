@@ -6,6 +6,7 @@ import { supabaseConfigured } from './lib/supabase'
 import { HouseholdProvider } from './context/HouseholdContext'
 import { TutorialProvider } from './context/TutorialContext'
 import Tutorial from './components/Tutorial'
+import NavBar from './components/ui/NavBar'
 import Onboarding   from './pages/Onboarding'
 import Dashboard    from './pages/Dashboard'
 import Chores       from './pages/Chores'
@@ -95,22 +96,25 @@ function AppRoutes() {
     <HouseholdProvider>
       <TutorialProvider>
         <Tutorial />
-        <Routes>
-          <Route path="/welcome"     element={<Onboarding />} />
-          <Route path="/"            element={guard(<Dashboard />)} />
-          <Route path="/chores"      element={guard(<Chores />)} />
-          <Route path="/finance"     element={guard(<Finance />)} />
-          <Route path="/notices"     element={guard(<Notices />)} />
-          <Route path="/bookings"    element={guard(<Bookings />)} />
-          <Route path="/maintenance" element={guard(<Maintenance />)} />
-          <Route path="/lockbox"     element={guard(<Lockbox />)} />
-          <Route path="/guests"      element={guard(<Guests />)} />
-          <Route path="/shopping"    element={guard(<Shopping />)} />
-          <Route path="/pets"        element={guard(<Pets />)} />
-          <Route path="/more"        element={guard(<More />)} />
-          <Route path="/karma"       element={guard(<Karma />)} />
-          <Route path="*"            element={<Navigate to={authed && hasHousehold ? '/' : '/welcome'} replace />} />
-        </Routes>
+        {authed && hasHousehold && <NavBar />}
+        <div className={authed && hasHousehold ? 'app-content' : ''}>
+          <Routes>
+            <Route path="/welcome"     element={<Onboarding />} />
+            <Route path="/"            element={guard(<Dashboard />)} />
+            <Route path="/chores"      element={guard(<Chores />)} />
+            <Route path="/finance"     element={guard(<Finance />)} />
+            <Route path="/notices"     element={guard(<Notices />)} />
+            <Route path="/bookings"    element={guard(<Bookings />)} />
+            <Route path="/maintenance" element={guard(<Maintenance />)} />
+            <Route path="/lockbox"     element={guard(<Lockbox />)} />
+            <Route path="/guests"      element={guard(<Guests />)} />
+            <Route path="/shopping"    element={guard(<Shopping />)} />
+            <Route path="/pets"        element={guard(<Pets />)} />
+            <Route path="/more"        element={guard(<More />)} />
+            <Route path="/karma"       element={guard(<Karma />)} />
+            <Route path="*"            element={<Navigate to={authed && hasHousehold ? '/' : '/welcome'} replace />} />
+          </Routes>
+        </div>
       </TutorialProvider>
     </HouseholdProvider>
   )

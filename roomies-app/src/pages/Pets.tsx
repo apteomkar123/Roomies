@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import type { PetLog } from '../types'
 import { format, startOfDay } from 'date-fns'
 
@@ -20,17 +19,17 @@ export default function Pets() {
   const { user } = useAuth()
   const { household } = useHousehold()
   const [logs, setLogs] = useState<PetLog[]>([])
-  const [petNames, setPetNames] = useState<string[]>(['Buddy'])
+  const [petNames, setPetNames] = useState<string[]>([])
   const [newPet, setNewPet] = useState('')
-  // Custom chores per pet stored in localStorage
   const [customChores, setCustomChores] = useState<Record<string, string[]>>({})
   const [newChoreInputs, setNewChoreInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!household) return
-    // Load custom chores from localStorage
     const stored = localStorage.getItem(`pet-chores-${household.id}`)
     if (stored) setCustomChores(JSON.parse(stored))
+    const storedPets = localStorage.getItem(`pet-names-${household.id}`)
+    if (storedPets) setPetNames(JSON.parse(storedPets))
     load()
     const ch = supabase.channel(`pets:${household.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pet_logs' }, load)
@@ -49,8 +48,14 @@ export default function Pets() {
       .order('action_at', { ascending: false })
     const d = (data ?? []) as PetLog[]
     setLogs(d)
-    const names = [...new Set(d.map(l => l.pet_name))]
-    if (names.length) setPetNames(prev => [...new Set([...prev, ...names])])
+    const namesFromDB = [...new Set(d.map(l => l.pet_name))]
+    if (namesFromDB.length) {
+      setPetNames(prev => {
+        const merged = [...new Set([...prev, ...namesFromDB])]
+        if (household) localStorage.setItem(`pet-names-${household.id}`, JSON.stringify(merged))
+        return merged
+      })
+    }
   }
 
   async function logAction(petName: string, action: string) {
@@ -67,6 +72,25 @@ export default function Pets() {
 
   function getLog(petName: string, action: string) {
     return logs.find(l => l.pet_name === petName && l.action === action)
+  }
+
+  function addPet() {
+    if (!newPet.trim() || !household) return
+    const updated = [...new Set([...petNames, newPet.trim()])]
+    setPetNames(updated)
+    localStorage.setItem(`pet-names-${household.id}`, JSON.stringify(updated))
+    setNewPet('')
+  }
+
+  function deletePet(name: string) {
+    if (!household) return
+    const updated = petNames.filter(p => p !== name)
+    setPetNames(updated)
+    localStorage.setItem(`pet-names-${household.id}`, JSON.stringify(updated))
+    const updatedChores = { ...customChores }
+    delete updatedChores[name]
+    setCustomChores(updatedChores)
+    localStorage.setItem(`pet-chores-${household.id}`, JSON.stringify(updatedChores))
   }
 
   function addCustomChore(petName: string) {
@@ -86,9 +110,8 @@ export default function Pets() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
 
       <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>Pet Care</h1>
 
@@ -99,20 +122,10 @@ export default function Pets() {
             placeholder="Add pet name"
             value={newPet}
             onChange={e => setNewPet(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && newPet.trim()) {
-                setPetNames(prev => [...new Set([...prev, newPet.trim()])])
-                setNewPet('')
-              }
-            }}
+            onKeyDown={e => e.key === 'Enter' && addPet()}
           />
           <button
-            onClick={() => {
-              if (newPet.trim()) {
-                setPetNames(prev => [...new Set([...prev, newPet.trim()])])
-                setNewPet('')
-              }
-            }}
+            onClick={addPet}
             style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
           >
             Add
@@ -125,7 +138,15 @@ export default function Pets() {
         const allActions = [...STANDARD_ACTIONS, ...petCustomChores]
         return (
           <GlassPanel key={pet} style={{ padding: 20, marginBottom: 20 }}>
-            <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 16 }}>🐾 {pet}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 20 }}>🐾 {pet}</div>
+              <button
+                onClick={() => deletePet(pet)}
+                style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}
+              >
+                Remove Pet
+              </button>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
               {allActions.map(action => {
@@ -142,17 +163,7 @@ export default function Pets() {
                         logAction(pet, action)
                       }
                     }}
-                    style={{
-                      padding: '16px 12px',
-                      borderRadius: 16,
-                      border: done ? '1.5px solid rgba(16,185,129,0.4)' : '1.5px solid rgba(0,0,0,0.08)',
-                      background: done ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.6)',
-                      cursor: done && !isMyLog ? 'default' : 'pointer',
-                      textAlign: 'left',
-                      fontFamily: 'inherit',
-                      transition: 'all 0.2s',
-                      position: 'relative',
-                    }}
+                    style={{ padding: '16px 12px', borderRadius: 16, border: done ? '1.5px solid rgba(16,185,129,0.4)' : '1.5px solid rgba(0,0,0,0.08)', background: done ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.6)', cursor: done && !isMyLog ? 'default' : 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s', position: 'relative' }}
                   >
                     <div style={{ fontSize: 24, marginBottom: 4 }}>{icon}</div>
                     <div style={{ fontWeight: 700, fontSize: 13, color: done ? '#059669' : '#374151' }}>{action}</div>
@@ -165,19 +176,13 @@ export default function Pets() {
                       <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>Tap to log</div>
                     )}
                     {petCustomChores.includes(action) && (
-                      <button
-                        onClick={e => { e.stopPropagation(); removeCustomChore(pet, action) }}
-                        style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 12, padding: 0 }}
-                      >
-                        ✕
-                      </button>
+                      <button onClick={e => { e.stopPropagation(); removeCustomChore(pet, action) }} style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 12, padding: 0 }}>✕</button>
                     )}
                   </button>
                 )
               })}
             </div>
 
-            {/* Add custom pet chore */}
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 className="glass-input"
@@ -187,16 +192,21 @@ export default function Pets() {
                 onKeyDown={e => e.key === 'Enter' && addCustomChore(pet)}
                 style={{ fontSize: 13 }}
               />
-              <button
-                onClick={() => addCustomChore(pet)}
-                style={{ padding: '10px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', fontSize: 13 }}
-              >
+              <button onClick={() => addCustomChore(pet)} style={{ padding: '10px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', fontSize: 13 }}>
                 + Add
               </button>
             </div>
           </GlassPanel>
         )
       })}
+
+      {petNames.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🐾</div>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>No pets yet</div>
+          <div style={{ fontSize: 14 }}>Add your first pet above</div>
+        </div>
+      )}
     </div>
   )
 }

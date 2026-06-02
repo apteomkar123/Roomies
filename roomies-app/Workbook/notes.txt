@@ -36,3 +36,13 @@ Add an option to add multiple households, all synced up with Hungry.
 Shopping list should be synced with Hungry.
 I see no chore calendar
 If a wifi password is added the lockbox, tapping it should automatically connect the users phone to the network.
+Change the "Finance" page to "Bills", and the subheading under it should just say split bills
+When there's an update on one of the pages, it should have a badge on it with the number of updates. Going to the page and viewing the updates should remove tha badge.
+When a section is selected, the font turns white on the nav, making it hard to read.
+Move the nav to the left and build everything about it exactly like Hungry.
+Add everything from the "more" page to the nav
+Tapping on the utility booker does nothing neither on the book page nor on the home screen, neither does adding something from the book button. Same exact thing goes for Pet Care.
+Adding a key to lockbox does nothing. Allow the user to select what they type of key they want to add, for example, WiFi, Gate Code, etc. Customize each entry accordingly, for example, wifi should have SSID and password, and hitting a "connect" button on the key should route you to your phone's settings where it auto joins the network.
+Maintenance tickets not saving, transactions not saving, chores not adding, notices not adding
+User should be able to delete a household, delete pets, delete pet chores, delete chores, take back Work orders, delete notices, delete bills.
+Link Google Account button in settings says "manual linking is disabled" when tapped. Get rid of the Link Google Account, and made in Link AppWare instead, and allow the user to link their AppWare account there.

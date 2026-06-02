@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import NavBar from '../components/ui/NavBar'
 import type { MaintenanceTicket } from '../types'
 import { format } from 'date-fns'
 
@@ -25,6 +24,7 @@ export default function Maintenance() {
   const [desc, setDesc] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -44,6 +44,7 @@ export default function Maintenance() {
 
   async function submit() {
     if (!title.trim() || !household) return
+    setSaveError(null)
     let imageUrl: string | null = null
     if (imageFile) {
       const path = `maintenance/${Date.now()}_${imageFile.name}`
@@ -53,12 +54,18 @@ export default function Maintenance() {
         imageUrl = pub.publicUrl
       }
     }
-    await supabase.from('maintenance_tickets').insert({ household_id: household.id, reported_by: user!.id, title, description: desc, image_url: imageUrl })
+    const { error } = await supabase.from('maintenance_tickets').insert({ household_id: household.id, reported_by: user!.id, title, description: desc, image_url: imageUrl })
+    if (error) { setSaveError(error.message); return }
     setTitle(''); setDesc(''); setImageFile(null); setImagePreview(null); setShowAdd(false); load()
   }
 
   async function updateStatus(id: string, status: Status) {
     await supabase.from('maintenance_tickets').update({ status }).eq('id', id)
+    load()
+  }
+
+  async function deleteTicket(id: string) {
+    await supabase.from('maintenance_tickets').delete().eq('id', id)
     load()
   }
 
@@ -70,9 +77,8 @@ export default function Maintenance() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px 16px 120px', maxWidth: 700, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
-      <NavBar />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
@@ -86,6 +92,7 @@ export default function Maintenance() {
 
       {showAdd && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+          {saveError && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{saveError}</div>}
           <input className="glass-input" placeholder="Issue title" value={title} onChange={e => setTitle(e.target.value)} style={{ marginBottom: 12 }} />
           <textarea className="glass-input" placeholder="Describe the issue…" value={desc} onChange={e => setDesc(e.target.value)} rows={3} style={{ resize: 'vertical', marginBottom: 12 }} />
           <div onClick={() => fileRef.current?.click()} style={{ border: '2px dashed rgba(37,99,235,0.3)', borderRadius: 14, padding: '20px', textAlign: 'center', cursor: 'pointer', marginBottom: 14, background: 'rgba(37,99,235,0.04)' }}>
@@ -98,14 +105,20 @@ export default function Maintenance() {
 
       {tickets.map(t => {
         const st = STATUS_STYLE[t.status as Status] ?? STATUS_STYLE['Open']
+        const isReporter = t.reported_by === user?.id
         return (
           <GlassPanel key={t.id} style={{ padding: 20, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: 16 }}>{t.title}</div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>by {t.profiles?.username} · {format(new Date(t.created_at), 'MMM d')}</div>
               </div>
-              <span style={{ background: st.bg, color: st.color, padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>{t.status}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ background: st.bg, color: st.color, padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>{t.status}</span>
+                {isReporter && (
+                  <button onClick={() => deleteTicket(t.id)} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
+                )}
+              </div>
             </div>
             {t.description && <div style={{ fontSize: 14, color: '#374151', marginBottom: 12, lineHeight: 1.6 }}>{t.description}</div>}
             {t.image_url && <img src={t.image_url} alt="issue" style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'cover', marginBottom: 12 }} />}
