@@ -177,7 +177,7 @@ export default function Lockbox() {
                   {hidden ? '•'.repeat(16) : item.value}
                 </div>
                 {/* WiFi connect controls */}
-                {isWifi && isRevealed && !hidden && (
+                {isWifi && !hidden && (
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={() => copyValue(item.value, item.id)}
@@ -200,7 +200,7 @@ export default function Lockbox() {
                     {hidden ? '👁 Reveal' : '🙈 Hide'}
                   </button>
                 )}
-                {!item.is_restricted && (
+                {!item.is_restricted && !isWifi && (
                   <button onClick={() => copyValue(item.value, item.id)} style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: copied === item.id ? 'rgba(16,185,129,0.1)' : 'rgba(37,99,235,0.08)', color: copied === item.id ? '#059669' : '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
                     {copied === item.id ? '✓' : '📋'}
                   </button>

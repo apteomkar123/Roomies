@@ -117,6 +117,14 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
 
+### Session 18 (2026-06-02)
+**Bug fixes:**
+- **Nav: Roomies glass pill removed** — the top-left glass capsule button replaced with a plain "Roomies" text tap target (Pacifico font, no button styling); swipe-right already handles nav open on mobile; cleaner look
+- **Delete Household modal** — clicking 🗑 on a household now opens a centred confirmation modal overlay ("Are you sure you want to delete this household?") instead of cluttering the household card with inline "Delete All" / "Cancel" buttons
+
+**Features added:**
+- **WiFi Connect button always visible** — the "📋 Copy Password" and "📡 Connect" buttons on WiFi lockbox entries now show for all non-hidden WiFi items (not only when the entry is revealed); non-restricted WiFi entries show the connect buttons immediately; restricted entries show them after tap-to-reveal; the redundant sidebar copy button is hidden for WiFi items since the inline copy button serves the same purpose
+
 ### Session 17 (2026-06-02)
 **Bug fixes:**
 - **RLS INSERT fix** — `is_household_member()` now has `SET search_path = public` to ensure `auth.uid()` resolves correctly inside SECURITY DEFINER context; all household-scoped INSERT policies now have explicit `WITH CHECK`; migration `004_fix_rls.sql` must be run in Supabase SQL Editor

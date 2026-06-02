@@ -50,3 +50,6 @@ saving a key triggers this error: new row violates row-level security policy for
 Utility and pet chores aren't being marked, add utility is not working, nothing is saving.
 The 3 lines in the top right corner for the nav should be removed, instead swiping to the right anywhere on the screen or tapping the Roomies logo in the top left corner should open the nav.
 add an option for the owner of a household to delete the household in settings
+Take out the Roomies button in the top left, just tapping on the roomies text in the header should open the nav, or swiping right anywhere on the screen.
+Hitting the delete button on a household pulls up a delete all button currently, change that to a message that pops up and asks "are you sure you want to delete this household?". Don't clutter the house card there.
+Wifi Keys should have a "connect" button, which will connect you to the network

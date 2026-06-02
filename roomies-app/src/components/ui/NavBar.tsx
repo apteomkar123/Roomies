@@ -86,29 +86,23 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Roomies logo trigger — always visible, fixed top-left */}
-      <button
+      {/* Roomies text trigger — always visible, fixed top-left */}
+      <span
         id="tut-nav-open"
         onClick={() => setNavOpen(v => !v)}
         style={{
-          position: 'fixed', top: 16, left: 16, zIndex: 60,
-          height: 40, padding: '0 14px',
-          borderRadius: 14,
-          background: 'rgba(255,255,255,0.72)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.5)',
-          boxShadow: '0 4px 16px rgba(37,99,235,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'fixed', top: 18, left: 16, zIndex: 60,
           cursor: 'pointer',
           fontFamily: 'Pacifico, cursive',
-          fontSize: 16,
+          fontSize: 20,
           color: '#2563EB',
           lineHeight: 1,
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
         }}
       >
         Roomies
-      </button>
+      </span>
 
       {/* Backdrop */}
       {navOpen && (

@@ -218,16 +218,9 @@ export default function More() {
                 ) : (
                   <button onClick={() => setDeleteConfirm(hh.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Leave</button>
                 )}
-                {/* Delete confirmation — owner only */}
+                {/* Delete — owner only */}
                 {hh.created_by === user?.id && (
-                  deleteHHConfirm === hh.id ? (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => deleteHousehold(hh.id)} disabled={hhLoading} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.20)', color: '#E11D48', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Delete All</button>
-                      <button onClick={() => setDeleteHHConfirm(null)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,0.06)', color: '#6B7280', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Cancel</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setDeleteHHConfirm(hh.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>🗑</button>
-                  )
+                  <button onClick={() => setDeleteHHConfirm(hh.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>🗑</button>
                 )}
               </div>
             </div>
@@ -341,6 +334,27 @@ export default function More() {
           🔗 Manage AppWare Account
         </a>
       </GlassPanel>
+
+      {/* Delete household confirmation modal */}
+      {deleteHHConfirm && (
+        <div
+          onClick={() => setDeleteHHConfirm(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: 20, padding: 28, maxWidth: 340, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+          >
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 12 }}>🗑</div>
+            <div style={{ fontWeight: 800, fontSize: 18, textAlign: 'center', marginBottom: 8 }}>Delete Household?</div>
+            <div style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>Are you sure you want to delete this household? This will remove all data and cannot be undone.</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setDeleteHHConfirm(null)} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.06)', color: '#374151', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>Cancel</button>
+              <button onClick={() => deleteHousehold(deleteHHConfirm)} disabled={hhLoading} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: 'rgba(244,63,94,0.15)', color: '#E11D48', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>{hhLoading ? '…' : 'Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
