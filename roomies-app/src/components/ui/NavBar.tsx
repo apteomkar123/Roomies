@@ -5,7 +5,7 @@ import { useHousehold } from '../../context/HouseholdContext'
 import { supabase } from '../../lib/supabase'
 import {
   Home, CheckSquare, DollarSign, Bell, Calendar, Wrench,
-  ShoppingCart, PawPrint, Users, Lock, Star, Settings, Menu, X
+  ShoppingCart, PawPrint, Users, Lock, Star, Settings, X
 } from 'lucide-react'
 
 const NAV = [
@@ -55,7 +55,7 @@ export default function NavBar() {
     if (touchStartX.current === null) return
     const startX = touchStartX.current
     const deltaX = e.changedTouches[0].clientX - startX
-    if (deltaX > 60 && !navOpen && startX < 30) setNavOpen(true)
+    if (deltaX > 60 && !navOpen) setNavOpen(true)
     else if (deltaX < -60 && navOpen) setNavOpen(false)
     touchStartX.current = null
   }, [navOpen])
@@ -86,22 +86,28 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Hamburger button — always visible, fixed top-left */}
+      {/* Roomies logo trigger — always visible, fixed top-left */}
       <button
         id="tut-nav-open"
         onClick={() => setNavOpen(v => !v)}
         style={{
           position: 'fixed', top: 16, left: 16, zIndex: 60,
-          width: 44, height: 44, borderRadius: 14,
+          height: 40, padding: '0 14px',
+          borderRadius: 14,
           background: 'rgba(255,255,255,0.72)',
           backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.5)',
           boxShadow: '0 4px 16px rgba(37,99,235,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: '#2563EB',
+          cursor: 'pointer',
+          fontFamily: 'Pacifico, cursive',
+          fontSize: 16,
+          color: '#2563EB',
+          lineHeight: 1,
         }}
       >
-        {navOpen ? <X size={20} /> : <Menu size={20} />}
+        Roomies
       </button>
 
       {/* Backdrop */}

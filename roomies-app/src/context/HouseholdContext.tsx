@@ -33,7 +33,24 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       supabase.from('household_members').select('*, profiles(*)').eq('household_id', profile.active_household_id),
     ])
     setHousehold(hh as Household)
-    const memberList = (mems ?? []) as HouseholdMember[]
+    let memberList = (mems ?? []) as HouseholdMember[]
+
+    // Auto-repair: active_household_id is set but user is not in household_members.
+    // This happens when onboarding fails mid-way or the DB membership row was lost.
+    // Re-inserting restores RLS access for all subsequent writes.
+    if (hh && profile && !memberList.some(m => m.profile_id === profile.id)) {
+      const { error } = await supabase
+        .from('household_members')
+        .insert({ household_id: profile.active_household_id, profile_id: profile.id, role: 'Tenant' })
+      if (!error || error.code === '23505') {
+        const { data: freshMems } = await supabase
+          .from('household_members')
+          .select('*, profiles(*)')
+          .eq('household_id', profile.active_household_id)
+        memberList = (freshMems ?? []) as HouseholdMember[]
+      }
+    }
+
     setMembers(memberList)
     const profiles = memberList.map(m => m.profiles!).filter(Boolean) as Profile[]
     setMemberProfiles(profiles)

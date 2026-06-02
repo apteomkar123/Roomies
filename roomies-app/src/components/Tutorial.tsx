@@ -23,7 +23,7 @@ const STEPS: Step[] = [
   { route: '/', elementId: 'tut-lockbox', title: 'Property Lockbox', side: 'top',
     desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap Reveal — Wi-Fi secrets show a Copy & Connect button.' },
   { route: '/', elementId: 'tut-nav-open', title: 'Navigation', side: 'bottom',
-    desc: 'Tap the hamburger button (top-left) or swipe right from the left edge to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, and Settings.' },
+    desc: 'Tap the Roomies logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, and Settings.' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Fair Chore Rotation', side: 'bottom',
     desc: 'A modulo algorithm rotates chores so no one is stuck with the same task. Complete one to earn +10 Karma.' },
   { route: '/chores', elementId: 'tut-marketplace', title: 'Karma Marketplace', side: 'top',

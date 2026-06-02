@@ -5,13 +5,14 @@ export type ChoreStatus = 'Pending' | 'Completed' | 'Swapped' | 'Auctioned'
 export type ExpenseCategory = 'Rent' | 'Groceries' | 'Utilities' | 'Shared Subscriptions' | 'Miscellaneous Ad-Hoc'
 export type NoticeType = 'Instant Buzz Notification' | 'Permanent Memo' | 'Formal Landlord Notice'
 export type MaintenanceStatus = 'Open' | 'Vendor Dispatched' | 'Resolved'
-export type PetAction = 'Morning Feed' | 'Evening Feed' | 'Daily Walk' | 'Medication Administered'
+export type PetAction = string
 
 export interface Household {
   id: string
   name: string
   invite_code: string
   created_at: string
+  created_by: string | null
 }
 
 export interface Profile {
@@ -181,7 +182,7 @@ export interface PetLog {
   id: string
   household_id: string
   pet_name: string
-  action: PetAction
+  action: string
   done_by: string
   action_at: string
   profiles?: Profile

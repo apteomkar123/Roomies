@@ -46,3 +46,7 @@ Adding a key to lockbox does nothing. Allow the user to select what they type of
 Maintenance tickets not saving, transactions not saving, chores not adding, notices not adding
 User should be able to delete a household, delete pets, delete pet chores, delete chores, take back Work orders, delete notices, delete bills.
 Link Google Account button in settings says "manual linking is disabled" when tapped. Get rid of the Link Google Account, and made in Link AppWare instead, and allow the user to link their AppWare account there.
+saving a key triggers this error: new row violates row-level security policy for table "lockbox". Getting the same error whenever I try to save anything, "transactions" for bills, "notices" for notices, etc.
+Utility and pet chores aren't being marked, add utility is not working, nothing is saving.
+The 3 lines in the top right corner for the nav should be removed, instead swiping to the right anywhere on the screen or tapping the Roomies logo in the top left corner should open the nav.
+add an option for the owner of a household to delete the household in settings

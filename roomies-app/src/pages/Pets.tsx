@@ -60,8 +60,7 @@ export default function Pets() {
 
   async function logAction(petName: string, action: string) {
     if (!household) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await supabase.from('pet_logs').insert({ household_id: household.id, pet_name: petName, action: action as any, done_by: user!.id })
+    await supabase.from('pet_logs').insert({ household_id: household.id, pet_name: petName, action, done_by: user!.id })
     load()
   }
 

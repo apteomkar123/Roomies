@@ -117,6 +117,16 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
 
+### Session 17 (2026-06-02)
+**Bug fixes:**
+- **RLS INSERT fix** — `is_household_member()` now has `SET search_path = public` to ensure `auth.uid()` resolves correctly inside SECURITY DEFINER context; all household-scoped INSERT policies now have explicit `WITH CHECK`; migration `004_fix_rls.sql` must be run in Supabase SQL Editor
+- **Auto-repair household membership** — `HouseholdContext` detects when `active_household_id` is set but user is missing from `household_members` and re-inserts the row, restoring write access without a manual DB fix
+- **Custom pet chores** — `pet_logs.action` changed from `pet_action` enum to `text`, allowing any chore name (including user-defined custom chores) to be saved to the database
+- **Nav: Roomies logo replaces hamburger** — 3-line hamburger icon removed; a glass pill showing "Roomies" (Pacifico font) in the top-left now opens/closes the drawer; swipe-right gesture now works from anywhere on screen (removed `startX < 30` restriction)
+
+**Features added:**
+- **Delete Household** — household owners (creators) now see a 🗑 button next to the household in Settings; tapping confirms then permanently deletes the household and all its data (cascade)
+
 ### Session 16 (2026-06-02)
 **Features added:**
 - **Shared Grocery List with Hungry** — Shopping page cross-reads from Hungry's `shopping_list` table for the same household. Hungry items appear with a HUNGRY badge. Toggling and deleting Hungry items updates the `shopping_list` table. Real-time subscription covers both tables.

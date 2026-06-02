@@ -7,7 +7,7 @@ import GlassPanel from '../components/ui/GlassPanel'
 
 type PhotoDialog = 'import-or-new' | 'apply-all' | null
 
-interface HouseholdRow { id: string; name: string; invite_code: string }
+interface HouseholdRow { id: string; name: string; invite_code: string; created_by: string | null }
 
 function genInviteCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
@@ -30,6 +30,7 @@ export default function More() {
   const [newHouseholdName, setNewHouseholdName] = useState('')
   const [hhLoading, setHhLoading] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [deleteHHConfirm, setDeleteHHConfirm] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -40,7 +41,7 @@ export default function More() {
     if (!user) return
     const { data } = await supabase
       .from('household_members')
-      .select('household_id, households(id, name, invite_code)')
+      .select('household_id, households(id, name, invite_code, created_by)')
       .eq('profile_id', user.id)
     if (data) {
       setMyHouseholds(
@@ -76,6 +77,18 @@ export default function More() {
     await refreshProfile()
     loadMyHouseholds()
     setDeleteConfirm(null)
+    setHhLoading(false)
+  }
+
+  async function deleteHousehold(hhId: string) {
+    if (!user) return
+    setHhLoading(true)
+    await supabase.from('households').delete().eq('id', hhId)
+    // profiles.active_household_id is ON DELETE SET NULL so DB handles clearing it,
+    // but we still need to refresh local state.
+    await refreshProfile()
+    loadMyHouseholds()
+    setDeleteHHConfirm(null)
     setHhLoading(false)
   }
 
@@ -196,6 +209,7 @@ export default function More() {
                     Switch
                   </button>
                 )}
+                {/* Leave confirmation */}
                 {deleteConfirm === hh.id ? (
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => leaveHousehold(hh.id)} disabled={hhLoading} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.15)', color: '#E11D48', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Leave</button>
@@ -203,6 +217,17 @@ export default function More() {
                   </div>
                 ) : (
                   <button onClick={() => setDeleteConfirm(hh.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Leave</button>
+                )}
+                {/* Delete confirmation — owner only */}
+                {hh.created_by === user?.id && (
+                  deleteHHConfirm === hh.id ? (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => deleteHousehold(hh.id)} disabled={hhLoading} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.20)', color: '#E11D48', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Delete All</button>
+                      <button onClick={() => setDeleteHHConfirm(null)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,0.06)', color: '#6B7280', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setDeleteHHConfirm(hh.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>🗑</button>
+                  )
                 )}
               </div>
             </div>
