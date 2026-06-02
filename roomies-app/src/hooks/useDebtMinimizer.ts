@@ -4,36 +4,40 @@ import type { Transaction, TransactionSplit, Transfer, NetBalance } from '../typ
 /**
  * Calculates the minimum-transfer set to settle all outstanding debts.
  *
- * Algorithm (Section 3B):
- * 1. Net per user = Σ(amount paid) - Σ(splits owed)
- * 2. Split into creditors (net > 0) and debtors (net < 0)
- * 3. Greedily match largest debtor → largest creditor until all settled
+ * Credit = sum of unsettled splits where this person is the PAYER (others owe them).
+ * Debit  = sum of unsettled splits where this person is the DEBTOR.
+ * Net    = Credit - Debit  (positive = owed money, negative = owes money)
  */
 export function useDebtMinimizer(
   transactions: Transaction[],
   splits: TransactionSplit[]
 ): { netBalances: NetBalance[]; transfers: Transfer[] } {
   return useMemo(() => {
-    const paid: Record<string, number> = {}
-    const owed: Record<string, number> = {}
-
+    // Build a lookup from transaction_id → paid_by
+    const paidBy: Record<string, string> = {}
     for (const tx of transactions) {
-      paid[tx.paid_by] = (paid[tx.paid_by] ?? 0) + Number(tx.amount)
+      paidBy[tx.id] = tx.paid_by
     }
+
+    // credit[id] = sum of what others owe this person (unsettled)
+    // debit[id]  = sum of what this person owes others (unsettled)
+    const credit: Record<string, number> = {}
+    const debit: Record<string, number> = {}
 
     for (const sp of splits) {
-      if (!sp.settled) {
-        owed[sp.debtor_id] = (owed[sp.debtor_id] ?? 0) + Number(sp.amount_owed)
-      }
+      if (sp.settled) continue
+      const payerId = paidBy[sp.transaction_id]
+      if (!payerId) continue
+      credit[payerId] = (credit[payerId] ?? 0) + Number(sp.amount_owed)
+      debit[sp.debtor_id] = (debit[sp.debtor_id] ?? 0) + Number(sp.amount_owed)
     }
 
-    const ids = new Set([...Object.keys(paid), ...Object.keys(owed)])
+    const ids = new Set([...Object.keys(credit), ...Object.keys(debit)])
     const nets: Record<string, number> = {}
     for (const id of ids) {
-      nets[id] = (paid[id] ?? 0) - (owed[id] ?? 0)
+      nets[id] = (credit[id] ?? 0) - (debit[id] ?? 0)
     }
 
-    // Build creditor/debtor lists
     type Entry = { id: string; amount: number }
     const creditors: Entry[] = []
     const debtors: Entry[] = []
@@ -47,12 +51,9 @@ export function useDebtMinimizer(
     debtors.sort((a, b) => b.amount - a.amount)
 
     const transfers: Transfer[] = []
-
-    let ci = 0
-    let di = 0
+    let ci = 0, di = 0
     while (ci < creditors.length && di < debtors.length) {
-      const c = creditors[ci]
-      const d = debtors[di]
+      const c = creditors[ci], d = debtors[di]
       const settle = Math.min(c.amount, d.amount)
       if (settle > 0.005) {
         transfers.push({ from: d.id, to: c.id, amount: Math.round(settle * 100) / 100 })
@@ -63,12 +64,11 @@ export function useDebtMinimizer(
       if (d.amount < 0.005) di++
     }
 
-    // Build net balance display list (all users with non-zero net)
     const netBalances: NetBalance[] = Object.entries(nets)
       .filter(([, n]) => Math.abs(n) > 0.005)
       .map(([id, net]) => ({
         profileId: id,
-        username: id, // caller resolves to username via profiles lookup
+        username: id,
         net: Math.round(net * 100) / 100,
       }))
 

@@ -117,6 +117,25 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
 
+### Session 21 (2026-06-02)
+**Bug fixes:**
+- **Invite link** — "Share Invite Link" button in Settings generates a shareable URL (`/welcome?invite=CODE`) using the Web Share API (with clipboard fallback); Onboarding auto-detects `?invite=` query param and pre-fills the code
+- **Tutorial blank boxes** — steps for Utility Booker and Pet Tracker now route to `/bookings` and `/pets` respectively (those widgets were removed from home); tutorial anchor IDs added to those pages; tutorial description updated to include Inventory
+- **AppWare name auto-fill** — Onboarding step 2 pre-fills username from `profile.display_name` or `profile.username`; a `useEffect` re-syncs if the profile loads after the component mounts (SSO flow)
+- **Onboarding flash** — added early `return null` guard in Onboarding when `user && profile.active_household_id` is set, preventing a split-second flash before navigate fires
+- **Chore rotation** — `addChore()` now sets `rotation_offset = chores.length % activeMembers.length` so each new chore starts at a different person; chores no longer pile on the same roommate
+- **Auction button** — marketplace filter now uses `choreIds` (household's chore IDs) via `chore_assignments.chore_id` instead of filtering by pending `assignmentIds`; auctioned tasks now appear in the marketplace
+- **Debt minimizer** — rewrote calculation to use split-based credit/debit (credit = sum of unsettled splits where you are the payer; debit = sum where you are the debtor); "Settle Up" panel now correctly shows who owes whom
+- **Notice auto-dismiss** — acknowledged notices disappear from view after 5 minutes (tracked in local state with a 30-second ticker); prior-session acked notices remain visible
+- **Hungry shopping items** — removed the blue HUNGRY pill from shopping list items; real username fetched via `profiles!user_id(username)` join instead of showing "(Hungry)"
+- **WiFi connect button** — removed the invalid `App-Prefs:WIFI` / `intent://settings` URL navigation that caused "Safari cannot open the page" error; connect button now copies password and shows an instruction message
+
+**Features added:**
+- **Time-based greeting** — Dashboard header shows "Good morning/afternoon/evening, [username]" based on current hour
+- **Venmo integration** — Settings page has a Venmo section to save your Venmo username; Bills settle-up section shows a "Pay via Venmo" deep link for transfers where the recipient has a Venmo username linked
+- **Inventory page** — new `/inventory` route in nav (Package icon): collapsible pantry section (reads from Hungry's `fridge_inventory` table for the same household) + household supplies section (Cleaning, Paper Goods, Toiletries, Laundry, Other) backed by new `household_inventory` table; requires migration `005_inventory_venmo.sql`
+- **Tutorial updated** — added Inventory step (step 12); TUTORIAL_TOTAL updated to 12
+
 ### Session 20 (2026-06-02)
 **Bug fixes:**
 - **Nav logo duplication** — removed the fixed "Roomies" Pacifico span that duplicated the Dashboard header logo in the top-left; the "Roomies" text in the Dashboard header now opens the nav when tapped (dispatches `roomies-open-nav` custom event); on desktop a hamburger icon button (hidden on mobile via CSS media query) replaces the fixed text trigger

@@ -114,7 +114,7 @@ export default function Pets() {
 
       <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>Pet Care</h1>
 
-      <GlassPanel style={{ padding: 16, marginBottom: 20 }}>
+      <GlassPanel id="tut-pets" style={{ padding: 16, marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <input
             className="glass-input"

@@ -60,3 +60,17 @@ Add a "done" button to all chores
 Chore calendar should show up on the home page, same with bills. Take the utility booker and pet care off the home page.
 Pending Maintenance work orders should also show up on the home page
 chores aren't showing up in the chore calendar. They get added as a card, but don't show up on the actual calendar with dates
+Sharing a household invite should create a link that the the invitee can just tap on and automatically join the household
+Sometimes features aren't there yet because they're triggered by another event, but tutorial still highlights a blank box on the screen. Show examples of those features, for example the chore sync anthem.
+If user has set a name on AppWare, Roomies should automatically pull that it as the name.
+All the chores added by User A get assigned to User A, instead of the app assigning the chore to household members according to its algorithm. Chores could be in a rotation as well
+Hitting the auction button on chores does nothing
+No Venmo button to settle up split bills
+If User A puts in a bill for 1600, and User B puts in one for 800, the balances are correctly calculated but it doesn't show how much is owed by whom to who
+Once a notice is acknowledged, it should disappear after 5 minutes
+Upon logging in, the onboarding shows for a split second every time
+Items added through Hungry to the shopping list should not show the blue Hungry pill and the "by" portion should say the user who's added it not "by hungry
+I get this message when I hit connect on wifi password card: Safari cannot open the page because the address is invalid.
+Add a greeting to the header that says "good morning, (user)" or whatever greeting based on the time of the day is appropriate
+Allow users to connect their Venmo account so tapping on split bill will automatically fill in the Venmo user accounts in the Venmo request app
+Add an inventory section in the nav. Import the pantry from Hungry, and show it as section you can tap on to see the full pantry, the rest of the items on the inventory should be non food items in the house, like swiffer pads, etc

@@ -8,6 +8,12 @@ import AvatarHalo from '../components/ui/AvatarHalo'
 import type { LockboxSecret, PresenceStatus, Chore, ChoreAssignment, Transaction, MaintenanceTicket } from '../types'
 import { format, isSameDay, startOfDay, addDays } from 'date-fns'
 
+function greeting(name?: string | null) {
+  const h = new Date().getHours()
+  const word = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+  return name ? `${word}, ${name}` : word
+}
+
 const PRESENCE_OPTIONS: PresenceStatus[] = ['Available', 'Sleeping', 'Quiet Hours / Studying', 'Work From Home', 'Away']
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
@@ -131,7 +137,8 @@ export default function Dashboard() {
           >
             Roomies
           </div>
-          <div style={{ color: '#6B7280', fontSize: 14, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
+          <div style={{ color: '#374151', fontSize: 15, fontWeight: 700 }}>{greeting(profile?.username)}</div>
+          <div style={{ color: '#6B7280', fontSize: 13, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
         </div>
         <AvatarHalo avatarUrl={profile?.roomies_avatar_url ?? profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
       </div>

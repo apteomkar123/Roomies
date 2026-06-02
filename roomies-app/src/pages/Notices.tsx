@@ -15,16 +15,26 @@ const TYPE_STYLE: Record<NoticeType, { bg: string; color: string; label: string 
   'Formal Landlord Notice':    { bg: 'rgba(244,63,94,0.08)',  color: '#BE123C', label: '📋 Landlord' },
 }
 
+const ACK_DISMISS_MS = 5 * 60 * 1000 // 5 minutes
+
 export default function Notices() {
   const { user } = useAuth()
   const { household } = useHousehold()
   const [notices, setNotices] = useState<Notice[]>([])
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
+  const [ackTimes, setAckTimes] = useState<Record<string, number>>({}) // noticeId → timestamp when acked this session
+  const [now, setNow] = useState(Date.now())
   const [showAdd, setShowAdd] = useState(false)
   const [body, setBody] = useState('')
   const [title, setTitle] = useState('')
   const [type, setType] = useState<NoticeType>('Permanent Memo')
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Tick every 30 seconds to update visibility of acked notices
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     if (!household) return
@@ -50,6 +60,7 @@ export default function Notices() {
   async function acknowledge(noticeId: string) {
     await supabase.from('read_acks').upsert({ notice_id: noticeId, user_id: user!.id })
     setReadIds(prev => new Set(prev).add(noticeId))
+    setAckTimes(prev => ({ ...prev, [noticeId]: Date.now() }))
   }
 
   async function deleteNotice(id: string) {
@@ -65,6 +76,14 @@ export default function Notices() {
     if (error) { setSaveError(error.message); return }
     setBody(''); setTitle(''); setShowAdd(false); loadNotices()
   }
+
+  // Hide notices acknowledged more than 5 minutes ago (this session only)
+  const visibleNotices = notices.filter(n => {
+    if (!readIds.has(n.id)) return true
+    const ackTime = ackTimes[n.id]
+    if (!ackTime) return true // acked in a previous session: still show
+    return now - ackTime < ACK_DISMISS_MS
+  })
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
@@ -94,7 +113,7 @@ export default function Notices() {
         </GlassPanel>
       )}
 
-      {notices.map(n => {
+      {visibleNotices.map(n => {
         const st = TYPE_STYLE[n.type as NoticeType] ?? TYPE_STYLE['Permanent Memo']
         const read = readIds.has(n.id)
         const isAuthor = n.author_id === user?.id
@@ -124,7 +143,7 @@ export default function Notices() {
         )
       })}
 
-      {notices.length === 0 && (
+      {visibleNotices.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📢</div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>No notices yet</div>

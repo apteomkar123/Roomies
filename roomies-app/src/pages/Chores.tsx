@@ -71,8 +71,10 @@ export default function Chores() {
     const assignmentList = ((a ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
     setAssignments(assignmentList)
 
-    const assignmentIds = new Set(assignmentList.map(as => as.id))
-    setMarketplace(((m ?? []) as KarmaMarketplace[]).filter(item => assignmentIds.has(item.assignment_id)))
+    // Filter marketplace items to only this household's chores (via chore_assignments.chore_id)
+    setMarketplace(((m ?? []) as KarmaMarketplace[]).filter(item =>
+      item.chore_assignments?.chore_id && choreIds.has(item.chore_assignments.chore_id)
+    ))
 
     const upcomingList = ((upcoming ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
     setUpcomingAssignments(upcomingList)
@@ -81,14 +83,16 @@ export default function Chores() {
   async function addChore() {
     if (!title.trim() || !household) return
     setSaveError(null)
+    const activeMembers = memberProfiles.filter(m => !m.away)
+    // Stagger rotation_offset so each chore starts at a different member in the cycle
+    const rotationOffset = activeMembers.length > 1 ? chores.length % activeMembers.length : 0
     const { data: newChore, error } = await supabase.from('chores')
-      .insert({ household_id: household.id, title: title.trim(), recurrence })
+      .insert({ household_id: household.id, title: title.trim(), recurrence, rotation_offset: rotationOffset })
       .select().single()
     if (error || !newChore) { setSaveError(error?.message ?? 'Failed'); return }
 
     // Auto-generate assignments for the next 30 days
     const periodDays = RECURRENCE_DAYS[recurrence]
-    const activeMembers = memberProfiles.filter(m => !m.away)
     if (activeMembers.length > 0) {
       const assignments: { chore_id: string; assigned_to: string; due_date: string; status: string }[] = []
       let due = startOfDay(new Date())

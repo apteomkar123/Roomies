@@ -97,13 +97,12 @@ export default function Lockbox() {
     } catch { /* clipboard not available */ }
   }
 
-  function openWifiSettings() {
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    if (isIOS) {
-      window.location.href = 'App-Prefs:WIFI'
-    } else {
-      window.location.href = 'intent://settings/wifi#Intent;scheme=android-app;package=com.android.settings;end'
-    }
+  const [connectMsg, setConnectMsg] = useState<string | null>(null)
+
+  async function handleWifiConnect(password: string, id: string) {
+    await copyValue(password, id)
+    setConnectMsg(id)
+    setTimeout(() => setConnectMsg(null), 4000)
   }
 
   return (
@@ -177,19 +176,26 @@ export default function Lockbox() {
                 </div>
                 {/* WiFi connect controls */}
                 {isWifi && !hidden && (
-                  <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => copyValue(item.value, item.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: 'none', background: copied === item.id ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.1)', color: copied === item.id ? '#059669' : '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
-                    >
-                      {copied === item.id ? '✓ Copied!' : '📋 Copy Password'}
-                    </button>
-                    <button
-                      onClick={() => { copyValue(item.value, item.id); openWifiSettings() }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(37,99,235,0.25)', background: 'transparent', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
-                    >
-                      📡 Connect
-                    </button>
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => copyValue(item.value, item.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: 'none', background: copied === item.id ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.1)', color: copied === item.id ? '#059669' : '#1D4ED8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+                      >
+                        {copied === item.id ? '✓ Copied!' : '📋 Copy Password'}
+                      </button>
+                      <button
+                        onClick={() => handleWifiConnect(item.value, item.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(37,99,235,0.25)', background: 'transparent', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+                      >
+                        📡 Connect
+                      </button>
+                    </div>
+                    {connectMsg === item.id && (
+                      <div style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
+                        ✓ Password copied — open your WiFi settings and select this network to connect.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

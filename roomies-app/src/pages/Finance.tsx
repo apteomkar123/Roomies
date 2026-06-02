@@ -23,8 +23,14 @@ export default function Finance() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const profileMap = Object.fromEntries(memberProfiles.map(p => [p.id, p.username]))
+  const venmoMap = Object.fromEntries(memberProfiles.map(p => [p.id, p.venmo_username ?? null]))
   const { transfers, netBalances } = useDebtMinimizer(transactions, splits)
-  const namedTransfers = transfers.map(t => ({ ...t, fromName: profileMap[t.from] ?? t.from, toName: profileMap[t.to] ?? t.to }))
+  const namedTransfers = transfers.map(t => ({
+    ...t,
+    fromName: profileMap[t.from] ?? t.from,
+    toName: profileMap[t.to] ?? t.to,
+    toVenmo: venmoMap[t.to] ?? null,
+  }))
   const namedBalances = netBalances.map(b => ({ ...b, username: profileMap[b.profileId] ?? b.profileId }))
 
   useEffect(() => {
@@ -134,12 +140,24 @@ export default function Finance() {
             <button onClick={settleAll} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.12)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Mark My Debts Paid</button>
           </div>
           {namedTransfers.map((t, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>{t.fromName}</span>
-              <span style={{ color: '#6B7280', fontSize: 13 }}>owes</span>
-              <span style={{ fontWeight: 800, fontSize: 15, color: '#2563EB' }}>${t.amount.toFixed(2)}</span>
-              <span style={{ color: '#6B7280', fontSize: 13 }}>to</span>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>{t.toName}</span>
+            <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{t.fromName}</span>
+                <span style={{ color: '#6B7280', fontSize: 13 }}>owes</span>
+                <span style={{ fontWeight: 800, fontSize: 15, color: '#2563EB' }}>${t.amount.toFixed(2)}</span>
+                <span style={{ color: '#6B7280', fontSize: 13 }}>to</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{t.toName}</span>
+              </div>
+              {t.toVenmo && t.from === user?.id && (
+                <a
+                  href={`https://venmo.com/${t.toVenmo}?txn=pay&amount=${t.amount.toFixed(2)}&note=Roomies%20Bill`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, padding: '6px 12px', borderRadius: 8, background: 'rgba(0,140,255,0.1)', color: '#008CFF', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+                >
+                  💸 Pay via Venmo
+                </a>
+              )}
             </div>
           ))}
         </GlassPanel>

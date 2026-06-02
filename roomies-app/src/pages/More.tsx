@@ -7,6 +7,32 @@ import GlassPanel from '../components/ui/GlassPanel'
 
 type PhotoDialog = 'import-or-new' | 'apply-all' | null
 
+function InviteShareButton({ inviteCode, householdName }: { inviteCode: string; householdName: string }) {
+  const [copied, setCopied] = useState(false)
+  const link = `${window.location.origin}/welcome?invite=${inviteCode}`
+
+  async function share() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${householdName} on Roomies`, text: `Tap to join my household on Roomies!`, url: link })
+        return
+      } catch { /* user cancelled */ }
+    }
+    await navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
+
+  return (
+    <button
+      onClick={share}
+      style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: copied ? 'rgba(16,185,129,0.12)' : 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: copied ? '#059669' : 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
+    >
+      {copied ? '✓ Link copied!' : '🔗 Share Invite Link'}
+    </button>
+  )
+}
+
 interface HouseholdRow { id: string; name: string; invite_code: string; created_by: string | null }
 
 function genInviteCode() {
@@ -21,6 +47,8 @@ export default function More() {
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [venmoInput, setVenmoInput] = useState(profile?.venmo_username ?? '')
+  const [venmoSaved, setVenmoSaved] = useState(false)
 
   const [myHouseholds, setMyHouseholds] = useState<HouseholdRow[]>([])
   const [showJoinNew, setShowJoinNew] = useState(false)
@@ -125,6 +153,14 @@ export default function More() {
     loadMyHouseholds()
     setNewHouseholdName(''); setShowCreateNew(false)
     setHhLoading(false)
+  }
+
+  async function saveVenmo() {
+    if (!user) return
+    await supabase.from('profiles').update({ venmo_username: venmoInput.replace('@', '').trim() || null }).eq('id', user.id)
+    await refreshProfile()
+    setVenmoSaved(true)
+    setTimeout(() => setVenmoSaved(false), 2000)
   }
 
   async function rerunTutorial() {
@@ -260,7 +296,8 @@ export default function More() {
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Invite Code</div>
           <div style={{ fontWeight: 900, fontSize: 32, letterSpacing: '0.2em', color: '#2563EB', fontFamily: 'monospace' }}>{household.invite_code}</div>
-          <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Share with roommates to join {household.name}</div>
+          <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4, marginBottom: 14 }}>Share with roommates to join {household.name}</div>
+          <InviteShareButton inviteCode={household.invite_code} householdName={household.name} />
         </GlassPanel>
       )}
 
@@ -317,6 +354,29 @@ export default function More() {
         <button onClick={rerunTutorial} style={{ padding: '10px 18px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>
           Rerun Tutorial
         </button>
+      </GlassPanel>
+
+      {/* Venmo */}
+      <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>💸 Venmo</div>
+        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>
+          Link your Venmo username so roommates can request payment directly.
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            className="glass-input"
+            placeholder="@your-venmo"
+            value={venmoInput}
+            onChange={e => setVenmoInput(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <button
+            onClick={saveVenmo}
+            style={{ padding: '10px 16px', borderRadius: 12, border: 'none', background: venmoSaved ? 'rgba(16,185,129,0.12)' : 'linear-gradient(135deg,#008CFF,#3D95CE)', color: venmoSaved ? '#059669' : 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, whiteSpace: 'nowrap' }}
+          >
+            {venmoSaved ? '✓ Saved' : 'Save'}
+          </button>
+        </div>
       </GlassPanel>
 
       {/* Link AppWare */}

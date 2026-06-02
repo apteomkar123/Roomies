@@ -41,10 +41,10 @@ export default function Shopping() {
       .order('urgent', { ascending: false })
       .order('created_at', { ascending: false })
 
-    // Cross-app: fetch Hungry shopping_list items for the same household
+    // Cross-app: fetch Hungry shopping_list items for the same household, with real usernames
     const { data: hungryData } = await supabase
       .from('shopping_list')
-      .select('*')
+      .select('*, profiles!user_id(username)')
       .eq('household_id', household.id)
       .order('created_at', { ascending: false })
 
@@ -53,11 +53,11 @@ export default function Shopping() {
       household_id: item.household_id,
       added_by: item.user_id,
       title: item.item_name,
-      quantity: item.quantity || '1',
+      quantity: String(item.quantity ?? '1'),
       urgent: item.is_urgent || false,
       purchased: item.is_completed || false,
       created_at: item.created_at,
-      profiles: { username: '(Hungry)' } as any,
+      profiles: { username: (item.profiles as any)?.username ?? 'Hungry' } as any,
       _source: 'hungry' as const,
       _hungry_id: item.id,
     }))
@@ -127,7 +127,6 @@ export default function Shopping() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {item.urgent && <span style={{ background: 'rgba(244,63,94,0.1)', color: '#E11D48', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>URGENT</span>}
-                  {item._source === 'hungry' && <span style={{ background: 'rgba(107,174,224,0.12)', color: '#3b82f6', padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>HUNGRY</span>}
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{item.title}</span>
                   <span style={{ fontSize: 12, color: '#9CA3AF' }}>×{item.quantity}</span>
                 </div>
@@ -146,7 +145,6 @@ export default function Shopping() {
             <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
               <input type="checkbox" checked onChange={() => togglePurchased(item)} style={{ width: 18, height: 18, accentColor: '#10B981', cursor: 'pointer' }} />
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                {item._source === 'hungry' && <span style={{ background: 'rgba(107,174,224,0.12)', color: '#3b82f6', padding: '2px 6px', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>HUNGRY</span>}
                 <span style={{ fontWeight: 600, fontSize: 14, textDecoration: 'line-through', color: '#9CA3AF' }}>{item.title}</span>
               </div>
               <button onClick={() => deleteItem(item)} style={{ background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 14, marginLeft: 'auto' }}>✕</button>

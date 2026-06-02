@@ -36,6 +36,9 @@ export default function Onboarding() {
   const { user, profile, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, refreshProfile } = useAuth()
   const navigate = useNavigate()
 
+  // Detect invite code from query param (e.g. /welcome?invite=ABC123)
+  const inviteFromUrl = new URLSearchParams(window.location.search).get('invite')?.toUpperCase() ?? ''
+
   const [step, setStep] = useState(user ? 2 : 1)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
@@ -48,8 +51,8 @@ export default function Onboarding() {
   const [resetSent, setResetSent] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Step 2 state
-  const [username, setUsername] = useState(profile?.username ?? '')
+  // Step 2 state — pre-fill from AppWare profile if available
+  const [username, setUsername] = useState(profile?.display_name || profile?.username || '')
   const [selectedAvatar, setSelectedAvatar] = useState(profile?.avatar_url ?? AVATAR_OPTIONS[0])
   const [customPhotoUrl, setCustomPhotoUrl] = useState<string | null>(null) // uploaded photo
   const [photoDialog, setPhotoDialog] = useState<PhotoDialog>(null)
@@ -91,6 +94,22 @@ export default function Onboarding() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (user && step === 1) setStep(2)
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync AppWare username/display_name once profile loads (handles SSO where profile arrives async)
+  useEffect(() => {
+    const name = profile?.display_name || profile?.username || ''
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (name && !username) setUsername(name)
+  }, [profile?.username, profile?.display_name]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-populate invite code from URL param once user reaches step 3
+  useEffect(() => {
+    if (step === 3 && inviteFromUrl && !inviteInput) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInviteInput(inviteFromUrl)
+      handleCheckInvite(inviteFromUrl)
+    }
+  }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-import AppWare profile photo when arriving at step 2
   useEffect(() => {
@@ -331,6 +350,9 @@ export default function Onboarding() {
     })
     setTimeout(() => navigate('/'), 800)
   }
+
+  // Prevent flash of onboarding when user already has a household — navigate away is pending
+  if (user && profile?.active_household_id) return null
 
   // ─────────────────────────────────────────────────────────────
   return (

@@ -86,7 +86,7 @@ export default function Bookings() {
       </div>
 
       {showAdd && (
-        <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+        <GlassPanel id="tut-appliance" style={{ padding: 20, marginBottom: 20 }}>
           <select value={resource} onChange={e => setResource(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 15, marginBottom: 12, fontFamily: 'inherit' }}>
             {RESOURCES.map(r => <option key={r}>{r}</option>)}
           </select>

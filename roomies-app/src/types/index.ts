@@ -25,6 +25,8 @@ export interface Profile {
   away: boolean
   updated_at: string
   has_completed_roomies_tutorial?: boolean
+  venmo_username?: string | null
+  display_name?: string | null
 }
 
 export interface HouseholdMember {
@@ -73,7 +75,7 @@ export interface KarmaMarketplace {
   karma_bounty: number
   is_open: boolean
   created_at: string
-  chore_assignments?: ChoreAssignment
+  chore_assignments?: ChoreAssignment & { chore_id?: string }
 }
 
 export interface Transaction {
