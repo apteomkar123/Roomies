@@ -59,6 +59,8 @@ export default function More() {
   const [hhLoading, setHhLoading] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleteHHConfirm, setDeleteHHConfirm] = useState<string | null>(null)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -155,6 +157,13 @@ export default function More() {
     setHhLoading(false)
   }
 
+  async function renameHousehold(hhId: string, newName: string) {
+    if (!newName.trim()) return
+    await supabase.from('households').update({ name: newName.trim() }).eq('id', hhId)
+    setMyHouseholds(prev => prev.map(h => h.id === hhId ? { ...h, name: newName.trim() } : h))
+    setRenamingId(null)
+  }
+
   async function saveVenmo() {
     if (!user) return
     await supabase.from('profiles').update({ venmo_username: venmoInput.replace('@', '').trim() || null }).eq('id', user.id)
@@ -231,10 +240,25 @@ export default function More() {
           const isActive = hh.id === profile?.active_household_id
           return (
             <div key={hh.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: isActive ? '#2563EB' : '#374151' }}>
-                  {isActive && '🏠 '}{hh.name}
-                </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {renamingId === hh.id ? (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') renameHousehold(hh.id, renameValue); if (e.key === 'Escape') setRenamingId(null) }}
+                      style={{ flex: 1, padding: '5px 10px', borderRadius: 8, border: '1.5px solid #6366f1', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'inherit' }}
+                    />
+                    <button onClick={() => renameHousehold(hh.id, renameValue)} style={{ padding: '5px 10px', borderRadius: 8, border: 'none', background: '#6366f1', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>✓</button>
+                    <button onClick={() => setRenamingId(null)} style={{ padding: '5px 10px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,0.06)', color: '#6B7280', fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>✕</button>
+                  </div>
+                ) : (
+                  <div style={{ fontWeight: 700, fontSize: 15, color: isActive ? '#2563EB' : '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {isActive && '🏠 '}{hh.name}
+                    <button onClick={() => { setRenamingId(hh.id); setRenameValue(hh.name) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#9CA3AF', padding: '0 2px', lineHeight: 1 }}>✎</button>
+                  </div>
+                )}
                 <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace', letterSpacing: '0.1em' }}>{hh.invite_code}</div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

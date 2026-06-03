@@ -117,6 +117,13 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`homebase-property-vault`) for maintenance photos and inspection images
 
+### Session 23 (2026-06-03)
+**Features added:**
+- **Tutorial example cards for empty-state features** — Tutorial.tsx now tracks `isFallback` state. When a feature element isn't found (e.g. empty chores/finance list), renders a visual demo card at the spotlight position showing example data instead of highlighting blank space. Each STEP has a `preview` string.
+- **Add food items to Pantry from HomeBase** — Shopping.tsx `addItem()` now writes to `shopping_list` (Pantry's shared table) instead of `shopping_items`. Items added in HomeBase appear in Pantry's Shopping tab automatically and vice versa.
+- **Confetti on tutorial completion** — `canvas-confetti` fires in `TutorialContext.complete()`. Colors match HomeBase's purple/indigo brand.
+- **Rename household** — Edit (✎) button next to each household name in More.tsx opens an inline input field. Saves to Supabase `households.name` and updates local state.
+
 ### Session 22 (2026-06-03)
 **Bug fixes:**
 - **netlify.toml BOM + wrong base dir** — removed UTF-8 BOM from `netlify.toml` (and 18 other source files that also had BOMs) which caused Netlify's TOML parser to abort at line 9; corrected `base` from `"__HOMEBASEAPP__"` to `"roomies-app"` so Netlify builds from the correct subdirectory

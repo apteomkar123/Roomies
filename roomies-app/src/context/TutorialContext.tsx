@@ -28,6 +28,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   }, [active])
 
   const complete = async () => {
+    import('canvas-confetti').then(({ default: confetti }) => {
+      confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#6366f1', '#8b5cf6', '#ffffff', '#a5b4fc'] })
+    }).catch(() => {})
     if (user) {
       await supabase.from('profiles').update({ has_completed_homebase_tutorial: true }).eq('id', user.id)
       await refreshProfile()

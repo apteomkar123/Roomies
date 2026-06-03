@@ -9,33 +9,46 @@ interface Step {
   title: string
   desc: string
   side: 'top' | 'bottom'
+  preview?: string // shown as a demo card when element has no data
 }
 
 const STEPS: Step[] = [
   { route: '/', elementId: 'tut-presence', title: 'Your Presence', side: 'bottom',
-    desc: 'Tap a status to broadcast it to your roommates. Setting "Away" automatically pauses your chore rotation.' },
+    desc: 'Tap a status to broadcast it to your roommates. Setting "Away" automatically pauses your chore rotation.',
+    preview: '🏠 Home  |  ✈️ Away  |  🔕 DND' },
   { route: '/', elementId: 'tut-buzz', title: 'Buzz Deck', side: 'top',
-    desc: 'One tap fires a Trash or Quiet Hours alert to everyone in the house instantly.' },
+    desc: 'One tap fires a Trash or Quiet Hours alert to everyone in the house instantly.',
+    preview: '🗑️ Take out trash   |   🔇 Quiet hours now' },
   { route: '/bookings', elementId: 'tut-appliance', title: 'Utility Booker', side: 'bottom',
-    desc: 'Claim hourly slots for shared utilities. The colour-coded grid shows exactly who\'s booked what. Tap your own slot to cancel it.' },
+    desc: 'Claim hourly slots for shared utilities. The colour-coded grid shows exactly who\'s booked what. Tap your own slot to cancel it.',
+    preview: '🕐 9am–10am  Alex\n🕐 10am–11am  You\n🕐 11am–12pm  Free' },
   { route: '/pets', elementId: 'tut-pets', title: 'Pet Tracker', side: 'bottom',
-    desc: 'Log feeds, walks, and meds for your household pets. Add pet-specific custom chores from this page.' },
+    desc: 'Log feeds, walks, and meds for your household pets. Add pet-specific custom chores from this page.',
+    preview: '🐶 Buddy  —  Fed 2h ago, Walk due\n🐱 Luna  —  Fed 30m ago' },
   { route: '/', elementId: 'tut-lockbox', title: 'Property Lockbox', side: 'top',
-    desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap the panel to open the full Lockbox, or tap Reveal — Wi-Fi secrets show a Copy & Connect button.' },
+    desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap the panel to open the full Lockbox, or tap Reveal — Wi-Fi secrets show a Copy & Connect button.',
+    preview: '📶 Wi-Fi: HomeNetwork_5G\n🔑 Gate: #1234*\n🛜 Guest Wi-Fi: HomeGuest' },
   { route: '/', elementId: 'tut-nav-open', title: 'Navigation', side: 'bottom',
-    desc: 'Tap the HomeBase logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, Inventory, and Settings.' },
+    desc: 'Tap the HomeBase logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, Inventory, and Settings.',
+    preview: '≡ Chores  📋 Bills  🛒 Shopping\n📦 Inventory  🎮 Karma  📢 Notices' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Intensity-Balanced Chores', side: 'bottom',
-    desc: 'Chores are assigned by workload intensity — vacuuming and bathrooms weigh heavier than trash or dishes, so no one carries more than their share. Tap an assignee\'s avatar to reassign any chore. Complete one to earn +10 Karma.' },
+    desc: 'Chores are assigned by workload intensity — vacuuming and bathrooms weigh heavier than trash or dishes, so no one carries more than their share. Tap an assignee\'s avatar to reassign any chore. Complete one to earn +10 Karma.',
+    preview: '🧹 Vacuum living room  →  Alex\n🚽 Clean bathroom  →  You\n🗑️ Take out trash  →  Sam' },
   { route: '/chores', elementId: 'tut-marketplace', title: 'Karma Marketplace', side: 'top',
-    desc: 'Too busy? Auction a chore for Karma. Claim others\' auctions and earn the bounty. The marketplace appears once a chore is auctioned.' },
+    desc: 'Too busy? Auction a chore for Karma. Claim others\' auctions and earn the bounty. The marketplace appears once a chore is auctioned.',
+    preview: '🏷️ "Clean bathroom" — 25 Karma\n🏷️ "Vacuum" — 15 Karma\n[Claim to earn Karma]' },
   { route: '/finance', elementId: 'tut-finance', title: 'Bills & Debt Minimizer', side: 'bottom',
-    desc: 'Track shared bills and split them easily. Greedy Matching calculates the fewest transfers to settle all house debts. Tap Venmo to pay directly.' },
+    desc: 'Track shared bills and split them easily. Greedy Matching calculates the fewest transfers to settle all house debts. Tap Venmo to pay directly.',
+    preview: '💡 Electricity $120  →  Alex paid\n📡 Internet $60  →  You owe $20\n🧾 Settle up: You → Alex $15' },
   { route: '/shopping', elementId: 'tut-shopping', title: 'Shared Grocery List with Pantry', side: 'bottom',
-    desc: 'Items added in Pantry appear here automatically. Add items here and they show in Pantry too. Check off from either app.' },
+    desc: 'Items added in Pantry appear here automatically. Add items here and they show in Pantry too. Check off from either app.',
+    preview: '🥛 Milk  [from Pantry]\n🍞 Bread  [from Pantry]\n🧀 Cheese  [added here]' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Chore Sync Anthems', side: 'top',
-    desc: 'When you mark a chore done, Vinyl queues a BPM-matched playlist — easy chores get chill beats, hard tasks get high-energy music.' },
+    desc: 'When you mark a chore done, Vinyl queues a BPM-matched playlist — easy chores get chill beats, hard tasks get high-energy music.',
+    preview: '✅ Vacuumed  →  🎵 High-energy playlist queued\n✅ Dishes  →  🎵 Chill playlist queued' },
   { route: '/inventory', elementId: 'tut-inventory', title: 'Household Inventory', side: 'bottom',
-    desc: 'Track your pantry (synced from Pantry) and household supplies like paper towels, cleaning products, and more. Never run out.' },
+    desc: 'Track your pantry (synced from Pantry) and household supplies like paper towels, cleaning products, and more. Never run out.',
+    preview: '🧻 Paper Towels  ▓▓▓░░  60%\n🧹 Dish Soap  ▓▓░░░  40%\n🍚 Rice  ▓░░░░  20%' },
 ]
 
 const TOOLTIP_W = 290
@@ -44,6 +57,7 @@ export default function Tutorial() {
   const { active, step, total, next, skip } = useTutorial()
   const navigate = useNavigate()
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const [isFallback, setIsFallback] = useState(false)
 
   const current = STEPS[step]
 
@@ -52,6 +66,7 @@ export default function Tutorial() {
     if (!active) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRect(null)
+    setIsFallback(false)
     navigate(current.route)
   }, [step, active]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -60,20 +75,26 @@ export default function Tutorial() {
     if (!active) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRect(null)
+    setIsFallback(false)
     const find = () => {
       const el = document.getElementById(current.elementId)
-      if (el) { setRect(el.getBoundingClientRect()); return true }
+      if (el) {
+        setRect(el.getBoundingClientRect())
+        setIsFallback(false)
+        return true
+      }
       return false
     }
     if (!find()) {
       const t = setTimeout(() => {
         if (!find()) {
           // Element is conditionally rendered (e.g. empty chores/finance) — use a centre fallback
+          setIsFallback(true)
           setRect(new DOMRect(
             window.innerWidth * 0.1,
-            window.innerHeight * 0.38,
+            window.innerHeight * 0.35,
             window.innerWidth * 0.8,
-            56
+            current.preview ? 100 : 56
           ))
         }
       }, 400)
@@ -83,14 +104,14 @@ export default function Tutorial() {
 
   // Re-measure on resize
   useEffect(() => {
-    if (!active || !rect) return
+    if (!active || !rect || isFallback) return
     const update = () => {
       const el = document.getElementById(current.elementId)
       if (el) setRect(el.getBoundingClientRect())
     }
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
-  }, [step, active, rect]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, active, rect, isFallback]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!active) return null
 
@@ -118,18 +139,15 @@ export default function Tutorial() {
     const gap = 18
     if (current.side === 'bottom') {
       tipTop = rect.bottom + pad + gap
-      // If it would go off the bottom, flip above
       if (tipTop + TOOLTIP_H > window.innerHeight - 12) {
         tipTop = rect.top - pad - gap - TOOLTIP_H
       }
     } else {
       tipTop = rect.top - pad - gap - TOOLTIP_H
-      // If it would go off the top, flip below
       if (tipTop < 12) {
         tipTop = rect.bottom + pad + gap
       }
     }
-    // Hard-clamp within viewport
     tipTop = Math.max(12, Math.min(tipTop, window.innerHeight - TOOLTIP_H - 12))
     tipLeft = Math.max(12, Math.min(
       rect.left + rect.width / 2 - TOOLTIP_W / 2,
@@ -152,6 +170,37 @@ export default function Tutorial() {
 
       {/* Click-to-advance backdrop */}
       <div onClick={next} style={{ position: 'fixed', inset: 0, zIndex: 1000, cursor: 'pointer' }} />
+
+      {/* Example card for empty-state features */}
+      {rect && isFallback && current.preview && (
+        <div style={{
+          position: 'fixed',
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          borderRadius: 14,
+          zIndex: 1001,
+          pointerEvents: 'none',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1.5px solid rgba(139,92,246,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '10px 16px',
+        }}>
+          <pre style={{
+            margin: 0,
+            fontFamily: 'inherit',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.85)',
+            fontWeight: 600,
+            lineHeight: 1.7,
+            whiteSpace: 'pre',
+            textAlign: 'left',
+          }}>{current.preview}</pre>
+        </div>
+      )}
 
       {/* Spotlight ring around target */}
       {rect && <div style={spotStyle} />}
@@ -179,6 +228,12 @@ export default function Tutorial() {
               }} />
             ))}
           </div>
+
+          {isFallback && (
+            <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Example Preview
+            </div>
+          )}
 
           <div style={{ fontWeight: 800, fontSize: 15, color: '#111827', marginBottom: 6 }}>{current.title}</div>
           <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.6 }}>{current.desc}</div>

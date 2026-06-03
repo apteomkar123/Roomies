@@ -67,7 +67,15 @@ export default function Shopping() {
 
   async function addItem() {
     if (!title.trim() || !household) return
-    await supabase.from('shopping_items').insert({ household_id: household.id, added_by: user!.id, title: title.trim(), quantity: qty, urgent })
+    // Write to shared shopping_list (Pantry's table) so the item appears in both apps
+    await supabase.from('shopping_list').insert({
+      user_id: user!.id,
+      household_id: household.id,
+      item_name: title.trim(),
+      quantity: parseInt(qty) || 1,
+      is_urgent: urgent,
+      is_completed: false,
+    })
     supabase.from('cross_app_activity').insert({
       user_id: user!.id,
       app: 'homebase',
