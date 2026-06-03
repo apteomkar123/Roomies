@@ -1,4 +1,4 @@
-# Roomies — Feature Status
+﻿# HomeBase — Feature Status
 
 A living document tracking what's shipped, what works, and what's pending.
 
@@ -10,16 +10,16 @@ A living document tracking what's shipped, what works, and what's pending.
 - Email / password sign-in and sign-up
 - Show/hide password toggle (eye icon) on password fields
 - Forgot password (email reset link)
-- **Sign in with AppWare** — "Sync your AppWare apps!" tagline above button; redirects to authappware.netlify.app SSO portal, returns with hash tokens injected into Supabase session
-- Google and Apple sign-in removed (replaced by AppWare SSO)
+- **Sign in with LyfeWare** — "Sync your LyfeWare apps!" tagline above button; redirects to authlyfeware.netlify.app SSO portal, returns with hash tokens injected into Supabase session
+- Google and Apple sign-in removed (replaced by LyfeWare SSO)
 - Client-side profile row creation fallback (for when DB trigger fails silently on signup)
 - Password reset screen (redirected from Supabase reset email)
 - **Auth loading bug fix** — resolved infinite spinner; SSO null `INITIAL_SESSION` handled
-- **Merge AppWare Account** — "Merge AppWare Account" card in More/Settings. Shows connected sign-in identities; "Link Google Account" button calls `supabase.auth.linkIdentity({ provider: 'google' })` to link Google to the current account so users can sign in from either method
+- **Merge LyfeWare Account** — "Merge LyfeWare Account" card in More/Settings. Shows connected sign-in identities; "Link Google Account" button calls `supabase.auth.linkIdentity({ provider: 'google' })` to link Google to the current account so users can sign in from either method
 
 ### Onboarding
 - Multi-step flow: sign-in/sign-up → profile setup (username, avatar) → create or join a household
-- **Auto-import AppWare profile photo** on step 2 — shows "import or change" dialog automatically
+- **Auto-import LyfeWare profile photo** on step 2 — shows "import or change" dialog automatically
 - **Onboarding redirect guard** — if user already has a household, skip onboarding entirely (no data loss)
 - **Blob URL bug fix** — photo upload failures no longer persist invalid blob: URLs to the DB
 - Avatar picker with DiceBear presets
@@ -56,7 +56,9 @@ A living document tracking what's shipped, what works, and what's pending.
 - Real-time updates via Supabase Realtime
 
 ### Bookings
-- Shared resource booking (Washing Machine, Dryer, Parking Bay A/B, BBQ, Rooftop + custom)
+- **Per-household resources** — hardcoded default utilities removed; each household starts with a clean slate and adds its own bookable resources (Washing Machine, Parking Bay, BBQ, etc.) via the "Manage" panel; stored in `household_resources` table
+- **Tap empty block to book** — clicking any unoccupied hour slot in the timeline now opens the booking form pre-filled with that resource and hour; hover highlight indicates clickability
+- Delete own booking by tapping it
 - Conflict detection
 - Real-time updates
 
@@ -73,10 +75,15 @@ A living document tracking what's shipped, what works, and what's pending.
 - Guest visit log (name, date, duration)
 - Tracks who invited the guest
 
+### Inventory
+- Household supplies tracking (Cleaning, Paper Goods, Toiletries, Laundry, Other categories)
+- Add / remove supply items manually
+- **Non-food items auto-sync from Pantry** — when a user scans a receipt or barcode in the Pantry app and a non-food item is detected, it is automatically inserted into HomeBase's `household_inventory` table; a violet toast notification "X non-food items added to HomeBase inventory" appears in Pantry
+
 ### Shopping
 - Shared household shopping list
 - Add / remove items, mark as bought
-- **Hungry sync** — adding items fires a cross_app_activity event to sync with Hungry
+- **Pantry sync** — adding items fires a cross_app_activity event to sync with Pantry
 
 ### Pets
 - Pet care log (Morning Feed, Evening Feed, Daily Walk, Medication Administered)
@@ -91,12 +98,12 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ### More / Settings
 - Navigation hub for secondary pages
-- **Multiple households** — view all households, switch active, join a new one via invite code, or create a new one; switches fire cross_app_activity for Hungry sync
+- **Multiple households** — view all households, switch active, join a new one via invite code, or create a new one; switches fire cross_app_activity for Pantry sync
 - Sign out
 - Re-run Tutorial
 
 ### Navigation (Left Sidebar)
-- **Left sidebar nav** — replaced bottom capsule with a fixed left sidebar matching the Hungry app style; shows icons + labels on desktop, icons only on mobile (< 640px)
+- **Left sidebar nav** — replaced bottom capsule with a fixed left sidebar matching the Pantry app style; shows icons + labels on desktop, icons only on mobile (< 640px)
 - **All pages in sidebar** — Shopping, Pets, Guests, Lockbox, Karma all directly accessible from nav (no longer hidden under More)
 - **Unread badges** — red badge on Notices (unread count) and Maintenance (open tickets), auto-updated via Supabase Realtime
 
@@ -128,7 +135,7 @@ A living document tracking what's shipped, what works, and what's pending.
 ### Settings (More page)
 - Renamed page heading to "Settings"
 - **Leave household** — "Leave" button with confirmation on each household; switches active household to next available
-- **Link AppWare** — replaced "Link Google Account" (which errored) with "Link AppWare Account" button linking to authappware.netlify.app
+- **Link LyfeWare** — replaced "Link Google Account" (which errored) with "Link LyfeWare Account" button linking to authlyfeware.netlify.app
 - Removed secondary page grid (Shopping, Pets, etc.) — all now in sidebar nav directly
 
 ### Readability
@@ -156,5 +163,5 @@ A living document tracking what's shipped, what works, and what's pending.
 - Push notifications for notices, maintenance updates, bookings
 - Deep link sharing for individual resources
 - Native mobile app (iOS / Android) — Wi-Fi auto-connect is best-effort on web
-- Google / Apple SSO (intentionally removed; AppWare SSO used instead)
+- Google / Apple SSO (intentionally removed; LyfeWare SSO used instead)
 - Pre-existing ESLint errors across multiple files (no-explicit-any, set-state-in-effect, exhaustive-deps) — not blocking builds

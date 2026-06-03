@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+﻿import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase, type Session, type User } from '../lib/supabase'
 import type { Profile } from '../types'
 
@@ -10,12 +10,12 @@ interface AuthCtx {
   needsPasswordReset: boolean
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithAppWare: () => void
+  signInWithLyfeWare: () => void
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
-  updateAvatar: (file: File, type?: 'global' | 'roomies') => Promise<void>
+  updateAvatar: (file: File, type?: 'global' | 'homebase') => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     if (hasHashTokens && at && rt) {
-      // Inject AppWare SSO or password-reset tokens.  On success Supabase fires
+      // Inject LyfeWare SSO or password-reset tokens.  On success Supabase fires
       // SIGNED_IN / PASSWORD_RECOVERY which the handler above picks up.
       // On failure (expired / wrong project) we reset to unauthenticated state.
       supabase.auth.setSession({ access_token: at, refresh_token: rt })
@@ -120,8 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }
 
-  const signInWithAppWare = () => {
-    window.location.href = `https://authappware.netlify.app?redirect_to=${encodeURIComponent(window.location.href)}`
+  const signInWithLyfeWare = () => {
+    window.location.href = `https://authlyfeware.netlify.app?redirect_to=${encodeURIComponent(window.location.href)}`
   }
 
   const sendPasswordReset = async (email: string) => {
@@ -145,21 +145,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id, user.email ?? undefined)
   }
 
-  const updateAvatar = async (file: File, type: 'global' | 'roomies' = 'global') => {
+  const updateAvatar = async (file: File, type: 'global' | 'homebase' = 'global') => {
     if (!user) return
     const ext = file.name.split('.').pop() ?? 'jpg'
-    const filename = type === 'roomies' ? `roomies.${ext}` : `avatar.${ext}`
+    const filename = type === 'homebase' ? `homebase.${ext}` : `avatar.${ext}`
     const path = `${user.id}/${filename}`
     const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true })
     if (error) return
     const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path)
-    const col = type === 'roomies' ? 'roomies_avatar_url' : 'avatar_url'
+    const col = type === 'homebase' ? 'homebase_avatar_url' : 'avatar_url'
     await supabase.from('profiles').update({ [col]: publicUrl }).eq('id', user.id)
     setProfile(prev => prev ? { ...prev, [col]: publicUrl } : prev)
   }
 
   return (
-    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, updatePassword, signOut, refreshProfile, updateAvatar }}>
+    <Ctx.Provider value={{ session, user, profile, loading, needsPasswordReset, signInWithEmail, signUpWithEmail, signInWithLyfeWare, sendPasswordReset, updatePassword, signOut, refreshProfile, updateAvatar }}>
       {children}
     </Ctx.Provider>
   )

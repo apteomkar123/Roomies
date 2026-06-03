@@ -1,6 +1,6 @@
-# 🚀 Roomies: First-Time User Tutorial Implementation
+﻿# 🚀 HomeBase: First-Time User Tutorial Implementation
 
-This document contains the instructions and database requirements for building the interactive onboarding tutorial for Roomies.
+This document contains the instructions and database requirements for building the interactive onboarding tutorial for HomeBase.
 
 ## 🏁 Introduction Quote
 The tutorial must start with this exact text:

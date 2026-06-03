@@ -1,13 +1,13 @@
-# 🏠 ROOMIES: MASTER PRODUCT SPECIFICATION & FULL-STACK IMPLEMENTATION BLUEPRINT
+﻿# 🏠 HOMEBASE: MASTER PRODUCT SPECIFICATION & FULL-STACK IMPLEMENTATION BLUEPRINT
 
-This document serves as the absolute, single-source-of-truth structural specification and architectural handoff file for **Roomies**—a high-energy, premium asynchronous co-living synchronization ecosystem.
+This document serves as the absolute, single-source-of-truth structural specification and architectural handoff file for **HomeBase**—a high-energy, premium asynchronous co-living synchronization ecosystem.
 
 
 ---
 
 ## 🎨 1. UI/UX Paradigm: "Porcelain Neon Glass" Style Guide
 
-The visual design system of Roomies is engineered to strip the friction and negativity away from domestic chore/bill management, transforming it into a high-energy, clear, and modern software environment.
+The visual design system of HomeBase is engineered to strip the friction and negativity away from domestic chore/bill management, transforming it into a high-energy, clear, and modern software environment.
 
 ### Global Palette, Gradients, and Canvas System
 
@@ -126,7 +126,7 @@ The application uses Supabase Postgres for relational tables, user sessions, and
 
 ### Dedicated Storage Buckets
 
-Configure an absolute public storage asset bucket titled `roomies-property-vault`. Apply strict folder routing structures separating assets cleanly: `/maintenance/` for technical issue photos, and `/inspections/` for time-stamped move-in property condition audits.
+Configure an absolute public storage asset bucket titled `homebase-property-vault`. Apply strict folder routing structures separating assets cleanly: `/maintenance/` for technical issue photos, and `/inspections/` for time-stamped move-in property condition audits.
 
 ---
 
@@ -226,7 +226,7 @@ The primary application interface uses a responsive layout grid layout dividing 
 ## 🚀 5. Explicit Claude Code Directive Checklist
 
 
- Review and ingest the full-stack architectural specification document provided for "Roomies" above. Systematically execute the complete workspace build out adhering strictly to the following parameters:
+ Review and ingest the full-stack architectural specification document provided for "HomeBase" above. Systematically execute the complete workspace build out adhering strictly to the following parameters:
 
 1. ENVIRONMENT & BACKEND MAPPING: Initialize the global Supabase client instantiation file sourcing target environment injection parameters cleanly from a root .env wrapper.
 2. SCHEMATIC DATABASE EXECUTION: Review the entire relational Postgres tables blueprint outlined in Section 2 textually. Provision the precise relational schema matching all columns, constraint logic, and foreign-key tables mappings exactly.

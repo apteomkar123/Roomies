@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -92,7 +92,7 @@
   }
   .btn-mint:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(16,185,129,0.45); }
 
-  /* Nav is now a floating overlay drawer (like Hungry) — no sidebar offset needed */
+  /* Nav is now a floating overlay drawer (like Pantry) — no sidebar offset needed */
   .app-content { margin-left: 0; }
 
   /* Hamburger nav trigger: hidden on mobile, shown on desktop */

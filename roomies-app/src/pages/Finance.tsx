@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -109,7 +109,7 @@ export default function Finance() {
     if (!remaining?.length) {
       supabase.from('cross_app_activity').insert({
         user_id: user!.id,
-        app: 'roomies',
+        app: 'homebase',
         activity_type: 'all_bills_paid',
         is_public: true,
         payload: { household_id: household.id, message: 'All bills are paid! 🎉 Financial Freedom unlocked.' },
@@ -207,7 +207,7 @@ export default function Finance() {
               {t.from === user?.id && (
                 t.toVenmo ? (
                   <a
-                    href={`https://venmo.com/${t.toVenmo}?txn=pay&amount=${t.amount.toFixed(2)}&note=Roomies%20Bill`}
+                    href={`https://venmo.com/${t.toVenmo}?txn=pay&amount=${t.amount.toFixed(2)}&note=HomeBase%20Bill`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, padding: '6px 12px', borderRadius: 8, background: 'rgba(0,140,255,0.1)', color: '#008CFF', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}

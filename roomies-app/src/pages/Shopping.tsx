@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -7,8 +7,8 @@ import GlassPanel from '../components/ui/GlassPanel'
 import type { ShoppingItem } from '../types'
 
 type CombinedItem = ShoppingItem & {
-  _source?: 'hungry'
-  _hungry_id?: string
+  _source?: 'pantry'
+  _pantry_id?: string
 }
 
 export default function Shopping() {
@@ -33,22 +33,22 @@ export default function Shopping() {
   async function load() {
     if (!household) return
 
-    // Fetch Roomies items
-    const { data: roomiesData } = await supabase
+    // Fetch HomeBase items
+    const { data: homebaseData } = await supabase
       .from('shopping_items')
       .select('*, profiles(username)')
       .eq('household_id', household.id)
       .order('urgent', { ascending: false })
       .order('created_at', { ascending: false })
 
-    // Cross-app: fetch Hungry shopping_list items for the same household, with real usernames
-    const { data: hungryData } = await supabase
+    // Cross-app: fetch Pantry shopping_list items for the same household, with real usernames
+    const { data: pantryData } = await supabase
       .from('shopping_list')
       .select('*, profiles!user_id(username)')
       .eq('household_id', household.id)
       .order('created_at', { ascending: false })
 
-    const mappedHungry: CombinedItem[] = (hungryData || []).map(item => ({
+    const mappedPantry: CombinedItem[] = (pantryData || []).map(item => ({
       id: item.id,
       household_id: item.household_id,
       added_by: item.user_id,
@@ -57,12 +57,12 @@ export default function Shopping() {
       urgent: item.is_urgent || false,
       purchased: item.is_completed || false,
       created_at: item.created_at,
-      profiles: { username: (item.profiles as any)?.username ?? 'Hungry' } as any,
-      _source: 'hungry' as const,
-      _hungry_id: item.id,
+      profiles: { username: (item.profiles as any)?.username ?? 'Pantry' } as any,
+      _source: 'pantry' as const,
+      _pantry_id: item.id,
     }))
 
-    setItems([...((roomiesData ?? []) as CombinedItem[]), ...mappedHungry])
+    setItems([...((homebaseData ?? []) as CombinedItem[]), ...mappedPantry])
   }
 
   async function addItem() {
@@ -70,7 +70,7 @@ export default function Shopping() {
     await supabase.from('shopping_items').insert({ household_id: household.id, added_by: user!.id, title: title.trim(), quantity: qty, urgent })
     supabase.from('cross_app_activity').insert({
       user_id: user!.id,
-      app: 'roomies',
+      app: 'homebase',
       activity_type: 'shopping_item_added',
       is_public: false,
       payload: { household_id: household.id, item: title.trim(), quantity: qty, urgent },
@@ -79,8 +79,8 @@ export default function Shopping() {
   }
 
   async function togglePurchased(item: CombinedItem) {
-    if (item._source === 'hungry') {
-      await supabase.from('shopping_list').update({ is_completed: !item.purchased }).eq('id', item._hungry_id!)
+    if (item._source === 'pantry') {
+      await supabase.from('shopping_list').update({ is_completed: !item.purchased }).eq('id', item._pantry_id!)
     } else {
       await supabase.from('shopping_items').update({ purchased: !item.purchased }).eq('id', item.id)
     }
@@ -88,8 +88,8 @@ export default function Shopping() {
   }
 
   async function deleteItem(item: CombinedItem) {
-    if (item._source === 'hungry') {
-      await supabase.from('shopping_list').delete().eq('id', item._hungry_id!)
+    if (item._source === 'pantry') {
+      await supabase.from('shopping_list').delete().eq('id', item._pantry_id!)
     } else {
       await supabase.from('shopping_items').delete().eq('id', item.id)
     }
@@ -157,7 +157,7 @@ export default function Shopping() {
         <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>List is empty</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Items added in Hungry appear here too</div>
+          <div style={{ fontSize: 13, marginTop: 6 }}>Items added in Pantry appear here too</div>
         </div>
       )}
     </div>

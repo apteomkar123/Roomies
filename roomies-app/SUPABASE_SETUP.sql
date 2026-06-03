@@ -1,5 +1,5 @@
--- ============================================================
--- Roomies — AppWare Supabase Project Setup
+﻿-- ============================================================
+-- HomeBase — LyfeWare Supabase Project Setup
 -- Paste this entire file into the Supabase SQL Editor and run.
 --
 -- IMPORTANT: After running this file, ALSO run the contents of
@@ -32,11 +32,11 @@ create table if not exists profiles (
   karma                          integer not null default 100 check (karma >= 0),
   active_household_id            uuid references households(id) on delete set null,
   away                           boolean not null default false,
-  has_completed_roomies_tutorial boolean not null default false,
+  has_completed_homebase_tutorial boolean not null default false,
   updated_at                     timestamptz not null default now()
 );
 
--- Auto-create profile on sign-up (handles email, Google, and AppWare SSO users)
+-- Auto-create profile on sign-up (handles email, Google, and LyfeWare SSO users)
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
 declare
@@ -305,7 +305,7 @@ create table if not exists lockbox (
 -- STORAGE BUCKET
 -- ──────────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public)
-values ('roomies-property-vault', 'roomies-property-vault', true)
+values ('homebase-property-vault', 'homebase-property-vault', true)
 on conflict do nothing;
 
 -- ──────────────────────────────────────────────────────────
@@ -398,12 +398,12 @@ create policy "lockbox_select"       on lockbox              for select using (i
 create policy "lockbox_all"          on lockbox              for all   using (is_household_member(household_id));
 
 -- Storage: household members can read/write their own files
-create policy "storage_select" on storage.objects for select using (bucket_id = 'roomies-property-vault');
-create policy "storage_insert" on storage.objects for insert with check (bucket_id = 'roomies-property-vault' and auth.uid() is not null);
-create policy "storage_delete" on storage.objects for delete using (bucket_id = 'roomies-property-vault' and auth.uid() is not null);
+create policy "storage_select" on storage.objects for select using (bucket_id = 'homebase-property-vault');
+create policy "storage_insert" on storage.objects for insert with check (bucket_id = 'homebase-property-vault' and auth.uid() is not null);
+create policy "storage_delete" on storage.objects for delete using (bucket_id = 'homebase-property-vault' and auth.uid() is not null);
 
 -- ──────────────────────────────────────────────────────────
 -- MIGRATION: add tutorial tracking (run on existing projects)
 -- ──────────────────────────────────────────────────────────
 alter table public.profiles
-  add column if not exists has_completed_roomies_tutorial boolean not null default false;
+  add column if not exists has_completed_homebase_tutorial boolean not null default false;

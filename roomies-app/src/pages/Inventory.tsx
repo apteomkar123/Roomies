@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -117,21 +117,21 @@ export default function Inventory() {
         </GlassPanel>
       )}
 
-      {/* Pantry from Hungry */}
+      {/* Pantry from Pantry */}
       <GlassPanel id="tut-inventory" style={{ padding: 20, marginBottom: 20 }}>
         <button
           onClick={() => setPantryOpen(v => !v)}
           style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
         >
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🥦 Pantry (from Hungry)</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🥦 Food Items (synced from Pantry)</div>
             <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{pantry.length} items</div>
           </div>
           <span style={{ fontSize: 18, color: '#9CA3AF', transform: pantryOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }}>▾</span>
         </button>
         {pantryOpen && (
           <div style={{ marginTop: 14 }}>
-            {pantry.length === 0 && <div style={{ color: '#9CA3AF', fontSize: 14 }}>No pantry items found. Add food to Hungry to see it here.</div>}
+            {pantry.length === 0 && <div style={{ color: '#9CA3AF', fontSize: 14 }}>No food items yet. Add food in the Pantry app to see it here.</div>}
             {pantry.map(item => (
               <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                 <div>

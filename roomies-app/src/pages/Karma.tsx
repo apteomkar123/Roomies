@@ -1,4 +1,4 @@
-import { useHousehold } from '../context/HouseholdContext'
+﻿import { useHousehold } from '../context/HouseholdContext'
 import { useAuth } from '../context/AuthContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
@@ -35,7 +35,7 @@ export default function Karma() {
               <div style={{ fontSize: 28, width: 36, textAlign: 'center', flexShrink: 0 }}>
                 {i < 3 ? MEDALS[i] : <span style={{ fontWeight: 800, color: '#9CA3AF', fontSize: 16 }}>#{i + 1}</span>}
               </div>
-              <AvatarHalo avatarUrl={p.roomies_avatar_url ?? p.avatar_url} status="Available" size={40} username={p.username} />
+              <AvatarHalo avatarUrl={p.homebase_avatar_url ?? p.avatar_url} status="Available" size={40} username={p.username} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>
                   {p.username}{isMe && <span style={{ fontSize: 11, color: '#2563EB', fontWeight: 700, marginLeft: 6 }}>You</span>}

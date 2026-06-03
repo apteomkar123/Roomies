@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState } from 'react'
 import type { ReactElement } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -24,7 +24,7 @@ import Inventory    from './pages/Inventory'
 
 const Spinner = () => (
   <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', gap: 16 }}>
-    <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB' }}>Roomies</div>
+    <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB' }}>HomeBase</div>
     <div style={{ width: 32, height: 32, border: '3px solid #E0E7FF', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
@@ -50,7 +50,7 @@ function PasswordResetScreen() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 400, background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(20px)', borderRadius: 24, padding: 36, border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}>
-        <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 32, color: '#2563EB', marginBottom: 8 }}>Roomies</div>
+        <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 32, color: '#2563EB', marginBottom: 8 }}>HomeBase</div>
         <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 4 }}>Set new password</div>
         <div style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>Choose a strong password for your account</div>
         {err && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{err}</div>}
@@ -127,7 +127,7 @@ export default function App() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', padding: 24 }}>
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB', marginBottom: 16 }}>Roomies</div>
+          <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 40, color: '#2563EB', marginBottom: 16 }}>HomeBase</div>
           <div style={{ background: 'rgba(244,63,94,0.08)', border: '1.5px solid rgba(244,63,94,0.25)', borderRadius: 16, padding: '20px 24px', color: '#BE123C' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Supabase not configured</div>
             <div style={{ fontSize: 14, lineHeight: 1.6, color: '#6B7280' }}>

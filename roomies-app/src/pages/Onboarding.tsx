@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -33,7 +33,7 @@ function parseQuietTime(s: string) {
 }
 
 export default function Onboarding() {
-  const { user, profile, signInWithEmail, signUpWithEmail, signInWithAppWare, sendPasswordReset, refreshProfile } = useAuth()
+  const { user, profile, signInWithEmail, signUpWithEmail, signInWithLyfeWare, sendPasswordReset, refreshProfile } = useAuth()
   const navigate = useNavigate()
 
   // Detect invite code from query param (e.g. /welcome?invite=ABC123)
@@ -51,7 +51,7 @@ export default function Onboarding() {
   const [resetSent, setResetSent] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Step 2 state — pre-fill from AppWare profile if available
+  // Step 2 state — pre-fill from LyfeWare profile if available
   const [username, setUsername] = useState(profile?.display_name || profile?.username || '')
   const [selectedAvatar, setSelectedAvatar] = useState(profile?.avatar_url ?? AVATAR_OPTIONS[0])
   const [customPhotoUrl, setCustomPhotoUrl] = useState<string | null>(null) // uploaded photo
@@ -66,7 +66,7 @@ export default function Onboarding() {
   const [codeValid, setCodeValid] = useState<boolean | null>(null)
 
   // Step 4A state (creator)
-  const [householdType, setHouseholdType] = useState<'shared' | 'roomies-only'>('shared')
+  const [householdType, setHouseholdType] = useState<'shared' | 'homebase-only'>('shared')
   const [quietStart, setQuietStart] = useState(22)
   const [quietEnd, setQuietEnd] = useState(8)
   const [hygieneScore, setHygieneScore] = useState(3)
@@ -95,7 +95,7 @@ export default function Onboarding() {
     if (user && step === 1) setStep(2)
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync AppWare username/display_name once profile loads (handles SSO where profile arrives async)
+  // Sync LyfeWare username/display_name once profile loads (handles SSO where profile arrives async)
   useEffect(() => {
     const name = profile?.display_name || profile?.username || ''
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -111,7 +111,7 @@ export default function Onboarding() {
     }
   }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-import AppWare profile photo when arriving at step 2
+  // Auto-import LyfeWare profile photo when arriving at step 2
   useEffect(() => {
     if (step === 2 && profile?.avatar_url && !customPhotoUrl) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -149,15 +149,15 @@ export default function Onboarding() {
     }
   }
 
-  async function uploadPhoto(file: File, type: 'global' | 'roomies'): Promise<string | null> {
+  async function uploadPhoto(file: File, type: 'global' | 'homebase'): Promise<string | null> {
     if (!user?.id) return null
     const ext = file.name.split('.').pop() ?? 'jpg'
-    const filename = type === 'global' ? `avatar.${ext}` : `roomies.${ext}`
+    const filename = type === 'global' ? `avatar.${ext}` : `homebase.${ext}`
     const path = `${user.id}/${filename}`
     const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true })
     if (error) return null
     const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path)
-    const col = type === 'global' ? 'avatar_url' : 'roomies_avatar_url'
+    const col = type === 'global' ? 'avatar_url' : 'homebase_avatar_url'
     await supabase.from('profiles').update({ [col]: publicUrl }).eq('id', user.id)
     return publicUrl
   }
@@ -193,7 +193,7 @@ export default function Onboarding() {
       : selectedAvatar
 
     if (pendingPhotoFile) {
-      const url = await uploadPhoto(pendingPhotoFile, 'roomies')
+      const url = await uploadPhoto(pendingPhotoFile, 'homebase')
       if (url) finalAvatar = url
       setPendingPhotoFile(null)
     }
@@ -215,10 +215,10 @@ export default function Onboarding() {
     setPhotoDialog(null)
   }
 
-  async function handleApplyRoomiesOnboard() {
+  async function handleApplyHomeBaseOnboard() {
     if (!pendingPhotoFile) return
     setPhotoUploading(true)
-    const url = await uploadPhoto(pendingPhotoFile, 'roomies')
+    const url = await uploadPhoto(pendingPhotoFile, 'homebase')
     if (url) setCustomPhotoUrl(url)
     setPendingPhotoFile(null)
     setPhotoUploading(false)
@@ -261,21 +261,21 @@ export default function Onboarding() {
       .insert({ id: hhId, name: `${username}'s Home`, invite_code: invite, created_by: user!.id })
     if (error) { setLoading(false); return setError(error.message) }
 
-    // For "roomies-only", create a separate Hungry household so Hungry
-    // doesn't share the Roomies household (hungry_household_id overrides active_household_id in Hungry).
-    let hungryHhId: string | null = null
-    if (householdType === 'roomies-only') {
-      hungryHhId = crypto.randomUUID()
+    // For "homebase-only", create a separate Pantry household so Pantry
+    // doesn't share the HomeBase household (hungry_household_id overrides active_household_id in Pantry).
+    let pantryHhId: string | null = null
+    if (householdType === 'homebase-only') {
+      pantryHhId = crypto.randomUUID()
       await supabase.from('households').insert({
-        id: hungryHhId,
+        id: pantryHhId,
         name: `${username}'s Pantry`,
         invite_code: genInviteCode(),
         created_by: user!.id,
       })
     }
 
-    const profileUpdate = hungryHhId
-      ? { active_household_id: hhId, hungry_household_id: hungryHhId }
+    const profileUpdate = pantryHhId
+      ? { active_household_id: hhId, hungry_household_id: pantryHhId }
       : { active_household_id: hhId }
 
     await Promise.all([
@@ -287,7 +287,7 @@ export default function Onboarding() {
         guest_overstay_rules: `Max ${maxGuests} consecutive nights`,
       }),
       supabase.from('household_members').insert({ household_id: hhId, profile_id: user!.id, role: 'Administrator' }),
-      ...(hungryHhId ? [supabase.from('household_members').insert({ household_id: hungryHhId, profile_id: user!.id, role: 'Administrator' })] : []),
+      ...(pantryHhId ? [supabase.from('household_members').insert({ household_id: pantryHhId, profile_id: user!.id, role: 'Administrator' })] : []),
       supabase.from('profiles').update(profileUpdate).eq('id', user!.id),
     ])
     await refreshProfile()
@@ -383,18 +383,18 @@ export default function Onboarding() {
         {step === 1 && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: 'Pacifico, cursive', fontSize: 48, background: 'linear-gradient(135deg, #2563EB, #8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 8 }}>
-              Roomies
+              HomeBase
             </div>
             <p style={{ color: '#6B7280', fontSize: 15, marginBottom: 32 }}>Your co-living command center</p>
 
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#8B5CF6', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 10px' }}>Sync your AppWare apps!</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#8B5CF6', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 10px' }}>Sync your LyfeWare apps!</p>
 
             <button
-              onClick={signInWithAppWare}
+              onClick={signInWithLyfeWare}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '14px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', cursor: 'pointer', fontWeight: 700, fontSize: 15, marginBottom: 12, fontFamily: 'inherit', color: '#fff' }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.2)"/><path d="M8 12h8M12 8l4 4-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Sign in with AppWare
+              Sign in with LyfeWare
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
@@ -472,7 +472,7 @@ export default function Onboarding() {
 
                 {photoDialog === 'import-or-new' ? (
                   <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 12, padding: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>You have an AppWare photo. Use it here?</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>You have an LyfeWare photo. Use it here?</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={handleImportGlobal} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, Use It</button>
                       <button onClick={() => { setPhotoDialog(null); photoFileRef.current?.click() }} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Choose Different</button>
@@ -480,10 +480,10 @@ export default function Onboarding() {
                   </div>
                 ) : photoDialog === 'apply-all' ? (
                   <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 12, padding: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Apply to all AppWare apps?</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Apply to all LyfeWare apps?</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={handleApplyAllOnboard} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, All Apps</button>
-                      <button onClick={handleApplyRoomiesOnboard} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Just Roomies</button>
+                      <button onClick={handleApplyHomeBaseOnboard} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid rgba(37,99,235,0.3)', background: 'transparent', color: '#2563EB', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Just HomeBase</button>
                     </div>
                   </div>
                 ) : (
@@ -561,16 +561,16 @@ export default function Onboarding() {
                   onClick={() => setHouseholdType('shared')}
                   style={{ flex: 1, padding: '12px 14px', borderRadius: 14, border: `2px solid ${householdType === 'shared' ? '#2563EB' : 'rgba(0,0,0,0.1)'}`, background: householdType === 'shared' ? 'rgba(37,99,235,0.08)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s' }}
                 >
-                  <div style={{ fontWeight: 800, fontSize: 13, color: householdType === 'shared' ? '#2563EB' : '#374151' }}>🍽️ Shared with Hungry</div>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: householdType === 'shared' ? '#2563EB' : '#374151' }}>🍽️ Shared with Pantry</div>
                   <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>Grocery & pantry synced across apps</div>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHouseholdType('roomies-only')}
-                  style={{ flex: 1, padding: '12px 14px', borderRadius: 14, border: `2px solid ${householdType === 'roomies-only' ? '#8B5CF6' : 'rgba(0,0,0,0.1)'}`, background: householdType === 'roomies-only' ? 'rgba(139,92,246,0.08)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                  onClick={() => setHouseholdType('homebase-only')}
+                  style={{ flex: 1, padding: '12px 14px', borderRadius: 14, border: `2px solid ${householdType === 'homebase-only' ? '#8B5CF6' : 'rgba(0,0,0,0.1)'}`, background: householdType === 'homebase-only' ? 'rgba(139,92,246,0.08)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s' }}
                 >
-                  <div style={{ fontWeight: 800, fontSize: 13, color: householdType === 'roomies-only' ? '#8B5CF6' : '#374151' }}>🏠 Roomies Only</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>Keep Hungry household separate</div>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: householdType === 'homebase-only' ? '#8B5CF6' : '#374151' }}>🏠 HomeBase Only</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>Keep Pantry household separate</div>
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import { supabase } from '../lib/supabase'
@@ -14,7 +14,7 @@ function InviteShareButton({ inviteCode, householdName }: { inviteCode: string; 
   async function share() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Join ${householdName} on Roomies`, text: `Tap to join my household on Roomies!`, url: link })
+        await navigator.share({ title: `Join ${householdName} on HomeBase`, text: `Tap to join my household on HomeBase!`, url: link })
         return
       } catch { /* user cancelled */ }
     }
@@ -85,7 +85,7 @@ export default function More() {
     setHhLoading(true)
     await supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id)
     supabase.from('cross_app_activity').insert({
-      user_id: user.id, app: 'roomies', activity_type: 'household_switched', is_public: false,
+      user_id: user.id, app: 'homebase', activity_type: 'household_switched', is_public: false,
       payload: { new_household_id: hhId },
     }).then(() => {})
     await refreshProfile()
@@ -146,7 +146,7 @@ export default function More() {
       supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id),
     ])
     supabase.from('cross_app_activity').insert({
-      user_id: user.id, app: 'roomies', activity_type: 'household_created', is_public: false,
+      user_id: user.id, app: 'homebase', activity_type: 'household_created', is_public: false,
       payload: { household_id: hhId, name: newHouseholdName.trim() },
     }).then(() => {})
     await refreshProfile()
@@ -165,7 +165,7 @@ export default function More() {
 
   async function rerunTutorial() {
     if (!user) return
-    await supabase.from('profiles').update({ has_completed_roomies_tutorial: false }).eq('id', user.id)
+    await supabase.from('profiles').update({ has_completed_homebase_tutorial: false }).eq('id', user.id)
     await refreshProfile()
   }
 
@@ -183,7 +183,7 @@ export default function More() {
       setPhotoDialog('apply-all')
     } else {
       setPhotoUploading(true)
-      await updateAvatar(file, 'roomies')
+      await updateAvatar(file, 'homebase')
       setPhotoUploading(false)
       setPhotoDialog(null)
     }
@@ -192,7 +192,7 @@ export default function More() {
   async function handleImportGlobal() {
     if (!user) return
     setPhotoUploading(true)
-    await supabase.from('profiles').update({ roomies_avatar_url: null }).eq('id', user.id)
+    await supabase.from('profiles').update({ homebase_avatar_url: null }).eq('id', user.id)
     await refreshProfile()
     setPhotoUploading(false)
     setPhotoDialog(null)
@@ -207,16 +207,16 @@ export default function More() {
     setPhotoDialog(null)
   }
 
-  async function handleApplyRoomiesOnly() {
+  async function handleApplyHomeBaseOnly() {
     if (!pendingFile) return
     setPhotoUploading(true)
-    await updateAvatar(pendingFile, 'roomies')
+    await updateAvatar(pendingFile, 'homebase')
     setPendingFile(null)
     setPhotoUploading(false)
     setPhotoDialog(null)
   }
 
-  const photo = profile?.roomies_avatar_url || profile?.avatar_url
+  const photo = profile?.homebase_avatar_url || profile?.avatar_url
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
@@ -327,7 +327,7 @@ export default function More() {
 
         {photoDialog === 'import-or-new' && (
           <div style={{ marginTop: 14, padding: 14, background: 'rgba(99,102,241,0.06)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>You already have an AppWare profile photo. Use it here?</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>You already have an LyfeWare profile photo. Use it here?</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={handleImportGlobal} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, Use It</button>
               <button onClick={() => { setPhotoDialog(null); fileRef.current?.click() }} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Choose Different</button>
@@ -338,10 +338,10 @@ export default function More() {
 
         {photoDialog === 'apply-all' && (
           <div style={{ marginTop: 14, padding: 14, background: 'rgba(99,102,241,0.06)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Apply this photo to all your AppWare apps?</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Apply this photo to all your LyfeWare apps?</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={handleApplyAll} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Yes, All Apps</button>
-              <button onClick={handleApplyRoomiesOnly} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Just Roomies</button>
+              <button onClick={handleApplyHomeBaseOnly} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.3)', background: 'transparent', color: '#6366f1', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Just HomeBase</button>
             </div>
             <button onClick={() => { setPhotoDialog(null); setPendingFile(null) }} style={{ marginTop: 8, width: '100%', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
           </div>
@@ -379,19 +379,19 @@ export default function More() {
         </div>
       </GlassPanel>
 
-      {/* Link AppWare */}
+      {/* Link LyfeWare */}
       <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Link AppWare Account</div>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Link LyfeWare Account</div>
         <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>
-          Connect your AppWare account to sync data across all AppWare apps — Roomies, Hungry, Jukebox, and more.
+          Connect your LyfeWare account to sync data across all LyfeWare apps — HomeBase, Pantry, Vinyl, and more.
         </div>
         <a
-          href="https://authappware.netlify.app"
+          href="https://authlyfeware.netlify.app"
           target="_blank"
           rel="noopener noreferrer"
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}
         >
-          🔗 Manage AppWare Account
+          🔗 Manage LyfeWare Account
         </a>
       </GlassPanel>
 

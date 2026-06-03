@@ -1,4 +1,4 @@
-export type PresenceStatus = 'Available' | 'Sleeping' | 'Quiet Hours / Studying' | 'Work From Home' | 'Away'
+﻿export type PresenceStatus = 'Available' | 'Sleeping' | 'Quiet Hours / Studying' | 'Work From Home' | 'Away'
 export type MemberRole = 'Administrator' | 'Tenant' | 'Landlord'
 export type ChoreRecurrence = 'Twice Weekly' | 'Weekly' | 'Bi-Weekly' | 'Monthly' | 'Quarterly'
 export type ChoreStatus = 'Pending' | 'Completed' | 'Swapped' | 'Auctioned'
@@ -19,12 +19,12 @@ export interface Profile {
   id: string
   username: string
   avatar_url: string | null
-  roomies_avatar_url: string | null
+  homebase_avatar_url: string | null
   karma: number
   active_household_id: string | null
   away: boolean
   updated_at: string
-  has_completed_roomies_tutorial?: boolean
+  has_completed_homebase_tutorial?: boolean
   venmo_username?: string | null
   display_name?: string | null
 }

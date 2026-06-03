@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+﻿import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useHousehold } from '../../context/HouseholdContext'
@@ -72,8 +72,8 @@ export default function NavBar() {
 
   useEffect(() => {
     const openNav = () => setNavOpen(true)
-    window.addEventListener('roomies-open-nav', openNav)
-    return () => window.removeEventListener('roomies-open-nav', openNav)
+    window.addEventListener('homebase-open-nav', openNav)
+    return () => window.removeEventListener('homebase-open-nav', openNav)
   }, [])
 
   async function fetchBadges() {
@@ -111,7 +111,7 @@ export default function NavBar() {
         />
       )}
 
-      {/* Floating drawer nav — matches Hungry's exact style */}
+      {/* Floating drawer nav — matches Pantry's exact style */}
       <nav
         id="tut-navbar"
         style={{
@@ -138,7 +138,7 @@ export default function NavBar() {
           padding: '20px 20px 16px',
           borderBottom: '1px solid rgba(255,255,255,0.30)',
         }}>
-          <span style={{ fontFamily: 'Pacifico, cursive', fontSize: 22, color: '#2563EB' }}>Roomies</span>
+          <span style={{ fontFamily: 'Pacifico, cursive', fontSize: 22, color: '#2563EB' }}>HomeBase</span>
           <button onClick={() => setNavOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 4, display: 'flex' }}>
             <X size={16} />
           </button>

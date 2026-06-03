@@ -1,4 +1,4 @@
-SESSION LOG — 2026-06-01 (Changes.md — 12-hour clock + household RLS)
+﻿SESSION LOG — 2026-06-01 (Changes.md — 12-hour clock + household RLS)
 ========================================================================
 
 BUGS FIXED
@@ -21,7 +21,7 @@ BUGS FIXED
    Fix B (SQL): updated households SELECT policy from is_household_member(id) to
    auth.uid() IS NOT NULL. This also fixes invite-code lookup (non-members need to
    SELECT households to find them by code).
-   Updated: SUPABASE_SETUP.sql, appware_unified_schema.sql.
+   Updated: SUPABASE_SETUP.sql, lyfeware_unified_schema.sql.
    Migration: supabase/migrations/003_fix_rls.sql (paste into Supabase SQL Editor).
    ACTION REQUIRED: run 003_fix_rls.sql in the Supabase SQL Editor.
 
@@ -36,7 +36,7 @@ SESSION LOG — 2026-06-01 (Changes.md — SSO + signup fix)
 
 BUGS FIXED
 ----------
-1. AppWare SSO login loop (persistent) — root cause identified and fixed.
+1. LyfeWare SSO login loop (persistent) — root cause identified and fixed.
    With detectSessionInUrl:true (Supabase default), the library auto-detected
    the hash tokens AND our code also called setSession() manually.  Supabase v2
    rotates the refresh token on each use; the second call used an already-rotated
@@ -50,10 +50,10 @@ BUGS FIXED
    the login screen shows immediately rather than hanging.
 
 2. "Database error saving new user" (persistent) — root cause was that the
-   appware_unified_schema.sql trigger had no exception block.  Any username
+   lyfeware_unified_schema.sql trigger had no exception block.  Any username
    conflict or DB error caused the trigger to throw, rolling back the entire
    auth.users INSERT and returning HTTP 500.
-   Fix — appware_unified_schema.sql: wrapped the entire INSERT in
+   Fix — lyfeware_unified_schema.sql: wrapped the entire INSERT in
    BEGIN...EXCEPTION WHEN OTHERS THEN NULL; END; and added base_name sanitization.
    The quick-fix migration is still in supabase/migrations/002_fix_trigger.sql.
    ACTION REQUIRED: run 002_fix_trigger.sql (or the updated schema trigger) in
@@ -79,10 +79,10 @@ BUGS FIXED
 2. Database error saving new user — the trigger fix (002_fix_trigger.sql) was
    already written but the setup file didn't prominently remind the developer to
    run it. Fix: Added a IMPORTANT comment at the top of SUPABASE_SETUP.sql.
-   File: roomies-app/SUPABASE_SETUP.sql
+   File: __HOMEBASEAPP__/SUPABASE_SETUP.sql
 
 3. Dashboard Roommates grid used p.avatar_url instead of
-   p.roomies_avatar_url ?? p.avatar_url, inconsistent with every other component.
+   p.homebase_avatar_url ?? p.avatar_url, inconsistent with every other component.
    File: src/pages/Dashboard.tsx
 
 4. Multi-hour bookings: timeline cells only highlighted the start hour.
@@ -180,7 +180,7 @@ BUGS FIXED
    SIGNED_IN if the trigger was skipped.
    IMPORTANT: Run 002_fix_trigger.sql in the Supabase SQL Editor to apply.
 
-2. AppWare SSO redirects back to login screen instead of signing in
+2. LyfeWare SSO redirects back to login screen instead of signing in
    Root cause: Race condition in AuthContext.tsx. onAuthStateChange fires
    INITIAL_SESSION (no session yet) before supabase.auth.setSession() resolves,
    calling setLoading(false) with no user → app renders unauthenticated →

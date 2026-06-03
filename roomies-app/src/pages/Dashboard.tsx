@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -134,15 +134,15 @@ export default function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <div
-            onClick={() => window.dispatchEvent(new Event('roomies-open-nav'))}
+            onClick={() => window.dispatchEvent(new Event('homebase-open-nav'))}
             style={{ fontFamily: 'Pacifico, cursive', fontSize: 28, background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
           >
-            Roomies
+            HomeBase
           </div>
           <div style={{ color: '#374151', fontSize: 15, fontWeight: 700 }}>{greeting(profile?.username)}</div>
           <div style={{ color: '#6B7280', fontSize: 13, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
         </div>
-        <AvatarHalo avatarUrl={profile?.roomies_avatar_url ?? profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
+        <AvatarHalo avatarUrl={profile?.homebase_avatar_url ?? profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
       </div>
 
       {/* Presence selector */}
@@ -182,7 +182,7 @@ export default function Dashboard() {
               const customText = getCustomTextForMember(p.id)
               return (
                 <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <AvatarHalo avatarUrl={p.roomies_avatar_url ?? p.avatar_url} status={getPresenceForMember(p.id)} size={40} username={p.username} />
+                  <AvatarHalo avatarUrl={p.homebase_avatar_url ?? p.avatar_url} status={getPresenceForMember(p.id)} size={40} username={p.username} />
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>{p.username}</div>
                   {customText && (
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#D97706', background: 'rgba(245,158,11,0.1)', borderRadius: 6, padding: '1px 6px', maxWidth: 80, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={customText}>{customText}</div>

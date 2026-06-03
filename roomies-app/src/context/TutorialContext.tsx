@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+﻿import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
@@ -19,7 +19,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState(0)
   const prevActive = useRef(false)
 
-  const active = !!user && !!profile?.active_household_id && !profile?.has_completed_roomies_tutorial
+  const active = !!user && !!profile?.active_household_id && !profile?.has_completed_homebase_tutorial
 
   // Reset to step 0 whenever tutorial becomes active (e.g. after rerun)
   useEffect(() => {
@@ -29,7 +29,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const complete = async () => {
     if (user) {
-      await supabase.from('profiles').update({ has_completed_roomies_tutorial: true }).eq('id', user.id)
+      await supabase.from('profiles').update({ has_completed_homebase_tutorial: true }).eq('id', user.id)
       await refreshProfile()
     }
   }

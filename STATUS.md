@@ -1,4 +1,4 @@
-# Roomies — Feature Status
+﻿# HomeBase — Feature Status
 
 ---
 
@@ -6,14 +6,14 @@
 
 ### Auth
 - Email / password sign-up and sign-in
-- Google and Apple OAuth handled by the AppWare portal (removed from this app's sign-in screen)
-- **AppWare SSO** — "Sign in with AppWare" redirects to the AppWare auth portal; incoming hash tokens are injected via explicit `setSession()` with `detectSessionInUrl:false` so Supabase never double-processes the tokens (double-processing was rotating the refresh token and firing SIGNED_OUT, causing the persistent login loop)
-- Auto-profile creation on sign-up — `appware_unified_schema.sql` trigger now wrapped in EXCEPTION block (fixes "Database error saving new user" 500); base_name sanitized; client-side fallback in AuthContext creates the profile on SIGNED_IN if the trigger silently skipped
+- Google and Apple OAuth handled by the LyfeWare portal (removed from this app's sign-in screen)
+- **LyfeWare SSO** — "Sign in with LyfeWare" redirects to the LyfeWare auth portal; incoming hash tokens are injected via explicit `setSession()` with `detectSessionInUrl:false` so Supabase never double-processes the tokens (double-processing was rotating the refresh token and firing SIGNED_OUT, causing the persistent login loop)
+- Auto-profile creation on sign-up — `lyfeware_unified_schema.sql` trigger now wrapped in EXCEPTION block (fixes "Database error saving new user" 500); base_name sanitized; client-side fallback in AuthContext creates the profile on SIGNED_IN if the trigger silently skipped
 - Session persistence + auto token refresh
 - Sign out
 - Show/hide password toggle (eye icon) on sign-in and password-reset fields
 - Input font-size 16px + removed backdrop-filter from input element + added -webkit-appearance:none and GPU layer to fix iOS Safari cursor displacement
-- "Sync your AppWare apps!" tagline above the AppWare sign-in button
+- "Sync your LyfeWare apps!" tagline above the LyfeWare sign-in button
 - **First-time spotlight tutorial** — 9-step live overlay that navigates to each feature page and spotlights the real UI element with a pulsing glow ring and animated tooltip; tap anywhere or press Next to advance; Skip/Finish both mark it done; "Rerun Tutorial" in More page resets it anytime
 
 ### Onboarding
@@ -29,7 +29,7 @@
 - Ambient Porcelain Neon Glass canvas (animated radial orbs)
 - Floating capsule NavBar with gradient active state
 - Presence status selector (Available / Sleeping / Quiet Hours / WFH / Away) — setting Away also sets `profile.away=true` so chore rotation excludes that user automatically
-- Roommate grid with Avatar Halo glow rings (colour changes per status); now uses `roomies_avatar_url ?? avatar_url` for consistency
+- Roommate grid with Avatar Halo glow rings (colour changes per status); now uses `homebase_avatar_url ?? avatar_url` for consistency
 - **Buzz Deck** — one-tap Trash Buzz and Quiet Buzz alerts (posts to Notices in real-time)
 - **Appliance Booker** — hourly time-grid for shared resources, colour-coded per user; multi-hour bookings now correctly highlight all booked cells
 - **Pet Tracker** — four action buttons with timestamp + username stamps
@@ -95,50 +95,50 @@
 - Away toggle (removes user from chore rotation)
 
 ### Profile Photos
-- **AppWare Global Photo** — Upload via "AppWare Photo" button in More page profile card; syncs across all apps
-- **Roomies-specific Photo** — Upload via "Roomies Photo" button in More page profile card; overrides global photo only in Roomies
-- **Avatar display** — Profile card in More page and Dashboard header now show roomies_avatar_url ?? avatar_url with initials fallback
+- **LyfeWare Global Photo** — Upload via "LyfeWare Photo" button in More page profile card; syncs across all apps
+- **HomeBase-specific Photo** — Upload via "HomeBase Photo" button in More page profile card; overrides global photo only in HomeBase
+- **Avatar display** — Profile card in More page and Dashboard header now show homebase_avatar_url ?? avatar_url with initials fallback
 
-### AppWare Ecosystem Features
-- **#2 Chore-Sync Anthems (write)** — `markDone()` in Chores.tsx writes a `chore_completed` event to `cross_app_activity` with `difficulty` and a `bpm_hint` (difficulty × 30 + 60) so Jukebox can queue a BPM-matched playlist
-- **#8 Victory Fanfare (write)** — after marking the last pending chore done, writes `all_chores_done` to `cross_app_activity` (public, visible to household members); Jukebox can use this to trigger a celebration playlist
+### LyfeWare Ecosystem Features
+- **#2 Chore-Sync Anthems (write)** — `markDone()` in Chores.tsx writes a `chore_completed` event to `cross_app_activity` with `difficulty` and a `bpm_hint` (difficulty × 30 + 60) so Vinyl can queue a BPM-matched playlist
+- **#8 Victory Fanfare (write)** — after marking the last pending chore done, writes `all_chores_done` to `cross_app_activity` (public, visible to household members); Vinyl can use this to trigger a celebration playlist
 - **#13 Rent-Day Rewards (write)** — after "Mark My Debts Paid" settles all splits, Finance.tsx checks if any unsettled splits remain for the household; if zero remain, writes `all_bills_paid` to `cross_app_activity`
-- **#14 Nutritional BPM (read + sort)** — Chores.tsx checks `cross_app_activity` for `nutrition_shortfall` events from Hungry (past 24h); if found, shows a "💪 Boost Mode" badge and sorts pending chore assignments with highest difficulty first
+- **#14 Nutritional BPM (read + sort)** — Chores.tsx checks `cross_app_activity` for `nutrition_shortfall` events from Pantry (past 24h); if found, shows a "💪 Boost Mode" badge and sorts pending chore assignments with highest difficulty first
 
-### Schema Migration (from per-app to unified AppWare schema)
-- `households.title` renamed to `households.name` — all Roomies queries updated
+### Schema Migration (from per-app to unified LyfeWare schema)
+- `households.title` renamed to `households.name` — all HomeBase queries updated
 - `profiles.household_id` replaced by `profiles.active_household_id` — HouseholdContext, App.tsx, Onboarding, More, Dashboard all updated
 - `agreement_signatures` insert in Onboarding now uses `profile.active_household_id`
-- New profile columns added: `has_completed_roomies_tutorial`, `karma`, `away`, `vibe_tags`, `favorite_genres`, `hungry_settings`
+- New profile columns added: `has_completed_homebase_tutorial`, `karma`, `away`, `vibe_tags`, `favorite_genres`, `hungry_settings`
 
 ### Database
-- Full Postgres schema (all tables, all enums, all foreign keys) — now defined in unified `appware_unified_schema.sql` at AppWare root
+- Full Postgres schema (all tables, all enums, all foreign keys) — now defined in unified `lyfeware_unified_schema.sql` at LyfeWare root
 - Row-Level Security on every table, scoped to household membership via `is_household_member()` SECURITY DEFINER function
 - `is_household_member()` helper function avoids RLS recursion
-- Supabase Storage bucket (`roomies-property-vault`) for maintenance photos and inspection images
+- Supabase Storage bucket (`homebase-property-vault`) for maintenance photos and inspection images
 
 ### Session 21 (2026-06-02)
 **Bug fixes:**
 - **Invite link** — "Share Invite Link" button in Settings generates a shareable URL (`/welcome?invite=CODE`) using the Web Share API (with clipboard fallback); Onboarding auto-detects `?invite=` query param and pre-fills the code
 - **Tutorial blank boxes** — steps for Utility Booker and Pet Tracker now route to `/bookings` and `/pets` respectively (those widgets were removed from home); tutorial anchor IDs added to those pages; tutorial description updated to include Inventory
-- **AppWare name auto-fill** — Onboarding step 2 pre-fills username from `profile.display_name` or `profile.username`; a `useEffect` re-syncs if the profile loads after the component mounts (SSO flow)
+- **LyfeWare name auto-fill** — Onboarding step 2 pre-fills username from `profile.display_name` or `profile.username`; a `useEffect` re-syncs if the profile loads after the component mounts (SSO flow)
 - **Onboarding flash** — added early `return null` guard in Onboarding when `user && profile.active_household_id` is set, preventing a split-second flash before navigate fires
 - **Chore rotation** — `addChore()` now sets `rotation_offset = chores.length % activeMembers.length` so each new chore starts at a different person; chores no longer pile on the same roommate
 - **Auction button** — marketplace filter now uses `choreIds` (household's chore IDs) via `chore_assignments.chore_id` instead of filtering by pending `assignmentIds`; auctioned tasks now appear in the marketplace
 - **Debt minimizer** — rewrote calculation to use split-based credit/debit (credit = sum of unsettled splits where you are the payer; debit = sum where you are the debtor); "Settle Up" panel now correctly shows who owes whom
 - **Notice auto-dismiss** — acknowledged notices disappear from view after 5 minutes (tracked in local state with a 30-second ticker); prior-session acked notices remain visible
-- **Hungry shopping items** — removed the blue HUNGRY pill from shopping list items; real username fetched via `profiles!user_id(username)` join instead of showing "(Hungry)"
+- **Pantry shopping items** — removed the blue PANTRY pill from shopping list items; real username fetched via `profiles!user_id(username)` join instead of showing "(Pantry)"
 - **WiFi connect button** — removed the invalid `App-Prefs:WIFI` / `intent://settings` URL navigation that caused "Safari cannot open the page" error; connect button now copies password and shows an instruction message
 
 **Features added:**
 - **Time-based greeting** — Dashboard header shows "Good morning/afternoon/evening, [username]" based on current hour
 - **Venmo integration** — Settings page has a Venmo section to save your Venmo username; Bills settle-up section shows a "Pay via Venmo" deep link for transfers where the recipient has a Venmo username linked
-- **Inventory page** — new `/inventory` route in nav (Package icon): collapsible pantry section (reads from Hungry's `fridge_inventory` table for the same household) + household supplies section (Cleaning, Paper Goods, Toiletries, Laundry, Other) backed by new `household_inventory` table; requires migration `005_inventory_venmo.sql`
+- **Inventory page** — new `/inventory` route in nav (Package icon): collapsible pantry section (reads from Pantry's `fridge_inventory` table for the same household) + household supplies section (Cleaning, Paper Goods, Toiletries, Laundry, Other) backed by new `household_inventory` table; requires migration `005_inventory_venmo.sql`
 - **Tutorial updated** — added Inventory step (step 12); TUTORIAL_TOTAL updated to 12
 
 ### Session 20 (2026-06-02)
 **Bug fixes:**
-- **Nav logo duplication** — removed the fixed "Roomies" Pacifico span that duplicated the Dashboard header logo in the top-left; the "Roomies" text in the Dashboard header now opens the nav when tapped (dispatches `roomies-open-nav` custom event); on desktop a hamburger icon button (hidden on mobile via CSS media query) replaces the fixed text trigger
+- **Nav logo duplication** — removed the fixed "HomeBase" Pacifico span that duplicated the Dashboard header logo in the top-left; the "HomeBase" text in the Dashboard header now opens the nav when tapped (dispatches `homebase-open-nav` custom event); on desktop a hamburger icon button (hidden on mobile via CSS media query) replaces the fixed text trigger
 - **Chore calendar empty** — `addChore()` now auto-generates `chore_assignments` rows for the next 30 days at the correct recurrence interval, assigned to the right rotation person; calendar now shows entries immediately after a chore is added
 
 **Features added:**
@@ -154,11 +154,11 @@
 - **Lockbox TS6133** — removed unused `isRevealed` variable (line 166 of Lockbox.tsx); the `hidden` variable already covered the same logic; fixes the Netlify build error
 
 **Features added:**
-- **Household type choice on creation** — when creating a household in onboarding (Step 4A), users now see two options: "Shared with Hungry" (default — one household used by both apps) or "Roomies Only" (a separate Hungry pantry household is auto-created and set as `hungry_household_id` so Hungry uses a different context); the toggle uses blue/purple accent colours matching each app
+- **Household type choice on creation** — when creating a household in onboarding (Step 4A), users now see two options: "Shared with Pantry" (default — one household used by both apps) or "HomeBase Only" (a separate Pantry pantry household is auto-created and set as `hungry_household_id` so Pantry uses a different context); the toggle uses blue/purple accent colours matching each app
 
 ### Session 18 (2026-06-02)
 **Bug fixes:**
-- **Nav: Roomies glass pill removed** — the top-left glass capsule button replaced with a plain "Roomies" text tap target (Pacifico font, no button styling); swipe-right already handles nav open on mobile; cleaner look
+- **Nav: HomeBase glass pill removed** — the top-left glass capsule button replaced with a plain "HomeBase" text tap target (Pacifico font, no button styling); swipe-right already handles nav open on mobile; cleaner look
 - **Delete Household modal** — clicking 🗑 on a household now opens a centred confirmation modal overlay ("Are you sure you want to delete this household?") instead of cluttering the household card with inline "Delete All" / "Cancel" buttons
 
 **Features added:**
@@ -169,16 +169,16 @@
 - **RLS INSERT fix** — `is_household_member()` now has `SET search_path = public` to ensure `auth.uid()` resolves correctly inside SECURITY DEFINER context; all household-scoped INSERT policies now have explicit `WITH CHECK`; migration `004_fix_rls.sql` must be run in Supabase SQL Editor
 - **Auto-repair household membership** — `HouseholdContext` detects when `active_household_id` is set but user is missing from `household_members` and re-inserts the row, restoring write access without a manual DB fix
 - **Custom pet chores** — `pet_logs.action` changed from `pet_action` enum to `text`, allowing any chore name (including user-defined custom chores) to be saved to the database
-- **Nav: Roomies logo replaces hamburger** — 3-line hamburger icon removed; a glass pill showing "Roomies" (Pacifico font) in the top-left now opens/closes the drawer; swipe-right gesture now works from anywhere on screen (removed `startX < 30` restriction)
+- **Nav: HomeBase logo replaces hamburger** — 3-line hamburger icon removed; a glass pill showing "HomeBase" (Pacifico font) in the top-left now opens/closes the drawer; swipe-right gesture now works from anywhere on screen (removed `startX < 30` restriction)
 
 **Features added:**
 - **Delete Household** — household owners (creators) now see a 🗑 button next to the household in Settings; tapping confirms then permanently deletes the household and all its data (cascade)
 
 ### Session 16 (2026-06-02)
 **Features added:**
-- **Shared Grocery List with Hungry** — Shopping page cross-reads from Hungry's `shopping_list` table for the same household. Hungry items appear with a HUNGRY badge. Toggling and deleting Hungry items updates the `shopping_list` table. Real-time subscription covers both tables.
-- **Floating Hungry-style Nav** — NavBar replaced with a Hungry-identical floating glass drawer: hamburger button (fixed top-left), backdrop overlay, swipe-right-from-edge gesture, swipe-left-to-close, Lucide icons, glass/blur styling matching Hungry. CSS sidebar and `app-content` offset removed.
-- **Tutorial: ecosystem steps** — 2 new tutorial steps added: Shared Grocery List with Hungry, Chore Sync Anthems with Jukebox. `TUTORIAL_TOTAL` updated to 11.
+- **Shared Grocery List with Pantry** — Shopping page cross-reads from Pantry's `shopping_list` table for the same household. Pantry items appear with a PANTRY badge. Toggling and deleting Pantry items updates the `shopping_list` table. Real-time subscription covers both tables.
+- **Floating Pantry-style Nav** — NavBar replaced with a Pantry-identical floating glass drawer: hamburger button (fixed top-left), backdrop overlay, swipe-right-from-edge gesture, swipe-left-to-close, Lucide icons, glass/blur styling matching Pantry. CSS sidebar and `app-content` offset removed.
+- **Tutorial: ecosystem steps** — 2 new tutorial steps added: Shared Grocery List with Pantry, Chore Sync Anthems with Vinyl. `TUTORIAL_TOTAL` updated to 11.
 - **Nav description update** — tutorial step for Navigation updated to reference the new floating drawer mechanism.
 
 ---
@@ -202,7 +202,7 @@
 | **Email / SMS Notifications** | Buzz alerts currently post to the in-app Notices table only. Sending real emails or SMS requires a transactional email provider (Resend, SendGrid) and/or Twilio wired into Supabase Edge Functions. |
 | **Scheduled Local Notifications** | Reminders like "It's your turn for trash tonight" or "Quiet hours start in 30 min" require `UNUserNotificationCenter` (iOS) or `AlarmManager` (Android) to fire while the app is closed. Not possible from a browser tab. |
 | **Background Data Refresh** | When the app is closed or backgrounded on iOS, no real-time Supabase channel updates are received and no data is synced. Requires `BGAppRefreshTask` (iOS) or a WorkManager job (Android) inside a native wrapper. |
-| **Deep Links / Universal Links** | A household invite link (e.g. `roomies.app/join/ABC123`) that opens the app directly to the join flow requires Associated Domains entitlement + `apple-app-site-association` file on the server. Web fallback is possible but the in-app deep-link handling needs a native router hook. |
+| **Deep Links / Universal Links** | A household invite link (e.g. `homebase.app/join/ABC123`) that opens the app directly to the join flow requires Associated Domains entitlement + `apple-app-site-association` file on the server. Web fallback is possible but the in-app deep-link handling needs a native router hook. |
 | **Geofence Auto-Away Mode** | Automatically toggling your presence to "Away" when you leave the home's GPS radius requires `CLLocationManager` always-on permission (iOS) or a Geofence API (Android). iOS Safari kills location access when the tab is not in the foreground. |
 | **iOS Home Screen Widgets** | A glanceable widget showing today's assigned chores, outstanding balance, or next appliance booking requires WidgetKit (iOS 14+). Web apps cannot place widgets on the home screen. |
 | **Siri Shortcuts** | Voice commands like "Hey Siri, log the dog walk" or "Hey Siri, add milk to the shopping list" require `INIntent` / `AppIntents` framework — native iOS only. |

@@ -1,5 +1,5 @@
--- ============================================================
--- Roomies – full schema migration
+﻿-- ============================================================
+-- HomeBase – full schema migration
 -- ============================================================
 
 -- Extensions
@@ -291,7 +291,7 @@ create table if not exists lockbox (
 -- STORAGE BUCKET (run via Supabase dashboard or CLI)
 -- ──────────────────────────────────────────────────────────
 -- insert into storage.buckets (id, name, public)
--- values ('roomies-property-vault', 'roomies-property-vault', true)
+-- values ('homebase-property-vault', 'homebase-property-vault', true)
 -- on conflict do nothing;
 
 -- ──────────────────────────────────────────────────────────

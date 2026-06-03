@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -173,7 +173,7 @@ export default function Chores() {
 
     supabase.from('cross_app_activity').insert({
       user_id: user!.id,
-      app: 'roomies',
+      app: 'homebase',
       activity_type: 'chore_completed',
       is_public: false,
       payload: { chore_title: choreTitle, difficulty: choreDifficulty, bpm_hint: choreDifficulty * 30 + 60 },
@@ -183,7 +183,7 @@ export default function Chores() {
     if (remaining.length === 0) {
       supabase.from('cross_app_activity').insert({
         user_id: user!.id,
-        app: 'roomies',
+        app: 'homebase',
         activity_type: 'all_chores_done',
         is_public: true,
         payload: { household_id: household?.id, message: 'All chores complete! 🎉' },

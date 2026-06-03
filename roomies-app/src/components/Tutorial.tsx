@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTutorial } from '../context/TutorialContext'
@@ -23,19 +23,19 @@ const STEPS: Step[] = [
   { route: '/', elementId: 'tut-lockbox', title: 'Property Lockbox', side: 'top',
     desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap the panel to open the full Lockbox, or tap Reveal — Wi-Fi secrets show a Copy & Connect button.' },
   { route: '/', elementId: 'tut-nav-open', title: 'Navigation', side: 'bottom',
-    desc: 'Tap the Roomies logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, Inventory, and Settings.' },
+    desc: 'Tap the HomeBase logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, Inventory, and Settings.' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Intensity-Balanced Chores', side: 'bottom',
     desc: 'Chores are assigned by workload intensity — vacuuming and bathrooms weigh heavier than trash or dishes, so no one carries more than their share. Tap an assignee\'s avatar to reassign any chore. Complete one to earn +10 Karma.' },
   { route: '/chores', elementId: 'tut-marketplace', title: 'Karma Marketplace', side: 'top',
     desc: 'Too busy? Auction a chore for Karma. Claim others\' auctions and earn the bounty. The marketplace appears once a chore is auctioned.' },
   { route: '/finance', elementId: 'tut-finance', title: 'Bills & Debt Minimizer', side: 'bottom',
     desc: 'Track shared bills and split them easily. Greedy Matching calculates the fewest transfers to settle all house debts. Tap Venmo to pay directly.' },
-  { route: '/shopping', elementId: 'tut-shopping', title: 'Shared Grocery List with Hungry', side: 'bottom',
-    desc: 'Items added in Hungry appear here automatically. Add items here and they show in Hungry too. Check off from either app.' },
+  { route: '/shopping', elementId: 'tut-shopping', title: 'Shared Grocery List with Pantry', side: 'bottom',
+    desc: 'Items added in Pantry appear here automatically. Add items here and they show in Pantry too. Check off from either app.' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Chore Sync Anthems', side: 'top',
-    desc: 'When you mark a chore done, Jukebox queues a BPM-matched playlist — easy chores get chill beats, hard tasks get high-energy music.' },
+    desc: 'When you mark a chore done, Vinyl queues a BPM-matched playlist — easy chores get chill beats, hard tasks get high-energy music.' },
   { route: '/inventory', elementId: 'tut-inventory', title: 'Household Inventory', side: 'bottom',
-    desc: 'Track your pantry (synced from Hungry) and household supplies like paper towels, cleaning products, and more. Never run out.' },
+    desc: 'Track your pantry (synced from Pantry) and household supplies like paper towels, cleaning products, and more. Never run out.' },
 ]
 
 const TOOLTIP_W = 290

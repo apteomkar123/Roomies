@@ -1,79 +1,79 @@
-Nothing is showing up on the page
+﻿Nothing is showing up on the page
 Continue with Google, starts to load the page, but then does nothing after that, just returns to the sign in page. Fix that.
 Add a show password button in the password field, use the little eye symbol that every website has.
-The authenticator website (Sign in with AppWare) will redirect the user to whatever app you're trying to use.
+The authenticator website (Sign in with LyfeWare) will redirect the user to whatever app you're trying to use.
 When I try to make an account, I'm getting an error that says "Database error saving new user"
 If the user enters their sign in information, but realizes they don't have an account and then hit the create account button, the text fields should clear out.
 Take out sign in with Google and sign in with apple cards.
 Cursor on phone at first shows up outside the email textbox and then returns.
 Console error when I try to make an account: Failed to load resource: the server responded with a status of 500 ()
 The iOS cursor glitch is still happening
-Add a message on top of the log "Sign in with AppWare" button that says "Sync your AppWare apps!"
+Add a message on top of the log "Sign in with LyfeWare" button that says "Sync your LyfeWare apps!"
 Execute Tutorial.md — build a tutorial after onboarding, first time only, with rerun in settings.
-Sign in with AppWare takes the user to Site not found. it should be routing to authappware.netlify.app
+Sign in with LyfeWare takes the user to Site not found. it should be routing to authlyfeware.netlify.app
 The iOS cursor on the sign in page is still being really weird.
 When I try to make an account, I get a console error: Failed to load resource https://qugmexzeqftqydrbecxd.supabase.co/auth/v1/signup: the server responded with a status of 500 (). (API keys are set in Netlify env vars.)
 The tutorial shouldn't just be cards, but should take the user through each feature by having them tap different places and showing them the feature with a little message next to it.
-I'm still getting that exact same error as before when I try to create an account with Roomies (500 on /auth/v1/signup)
+I'm still getting that exact same error as before when I try to create an account with HomeBase (500 on /auth/v1/signup)
 I emptied .gitignore, I wanted all files and dependencies to follow me from machine to machine.
 Netlify build error: #L52-L58 shows TypeScript error TS2551 because supabase.from('profiles').insert(...) returns a PostgrestFilterBuilder, which does not expose a .catch() method. Chaining .catch on the awaited call therefore fails the build.
 Making an account gives the same database save error as it has been.
-Sigining with  AppWare does not sign me into the app, it just brings right back to the log in screen.
-Now Roomies logs in, but doesn't make it past the initial loading page
+Sigining with  LyfeWare does not sign me into the app, it just brings right back to the log in screen.
+Now HomeBase logs in, but doesn't make it past the initial loading page
 Please think properly and fix both of the below bugs, I've asked you to fix them like 4 times now:
-ROOMIES STILL ISN'T WORKING, IT LOADS AND THEN GOES RIGHT BACK TO THE LOG IN SCREEN AFTER LOGGING IN WITH APPWARE
+HOMEBASE STILL ISN'T WORKING, IT LOADS AND THEN GOES RIGHT BACK TO THE LOG IN SCREEN AFTER LOGGING IN WITH LYFEWARE
 Creating a new account is still doing the exact same thing, error "Database error saving new error".
 All times around the app should be in 12 hour clock and AM PM, not 24 hour. This includes the onboarding.
 When trying to create a household, I get an error: new row violates row-level security policy for table "Households"
-During onboarding, the profile photo doesn't save, app bricks up. It should import photo from AppWare and then ask if user wants to change it.
+During onboarding, the profile photo doesn't save, app bricks up. It should import photo from LyfeWare and then ask if user wants to change it.
 Tutorial doesn't start at first log in. Some tutorial screens going off of screen.
 App goes through onboarding every time it's opened. Because of this, households are getting deleted every time, and all data is disappearing.
 Because the sections of the app get bright when you tap on them and the text gets white, the text disappears in the background. Make it easier to read and see
 Tapping again on the boxes in appliance booker should deselect the boxes. Change the name of it to utility booker
 Tapping again on the boxes in pet care should deselect the boxes. Also add an option on the pet care section to add pet specific chores
 Add an option in the utility booker (formerly appliance booker) section to add utilities
-Add an option to add multiple households, all synced up with Hungry.
-Shopping list should be synced with Hungry.
+Add an option to add multiple households, all synced up with Pantry.
+Shopping list should be synced with Pantry.
 I see no chore calendar
 If a wifi password is added the lockbox, tapping it should automatically connect the users phone to the network.
 Change the "Finance" page to "Bills", and the subheading under it should just say split bills
 When there's an update on one of the pages, it should have a badge on it with the number of updates. Going to the page and viewing the updates should remove tha badge.
 When a section is selected, the font turns white on the nav, making it hard to read.
-Move the nav to the left and build everything about it exactly like Hungry.
+Move the nav to the left and build everything about it exactly like Pantry.
 Add everything from the "more" page to the nav
 Tapping on the utility booker does nothing neither on the book page nor on the home screen, neither does adding something from the book button. Same exact thing goes for Pet Care.
 Adding a key to lockbox does nothing. Allow the user to select what they type of key they want to add, for example, WiFi, Gate Code, etc. Customize each entry accordingly, for example, wifi should have SSID and password, and hitting a "connect" button on the key should route you to your phone's settings where it auto joins the network.
 Maintenance tickets not saving, transactions not saving, chores not adding, notices not adding
 User should be able to delete a household, delete pets, delete pet chores, delete chores, take back Work orders, delete notices, delete bills.
-Link Google Account button in settings says "manual linking is disabled" when tapped. Get rid of the Link Google Account, and made in Link AppWare instead, and allow the user to link their AppWare account there.
+Link Google Account button in settings says "manual linking is disabled" when tapped. Get rid of the Link Google Account, and made in Link LyfeWare instead, and allow the user to link their LyfeWare account there.
 saving a key triggers this error: new row violates row-level security policy for table "lockbox". Getting the same error whenever I try to save anything, "transactions" for bills, "notices" for notices, etc.
 Utility and pet chores aren't being marked, add utility is not working, nothing is saving.
-The 3 lines in the top right corner for the nav should be removed, instead swiping to the right anywhere on the screen or tapping the Roomies logo in the top left corner should open the nav.
+The 3 lines in the top right corner for the nav should be removed, instead swiping to the right anywhere on the screen or tapping the HomeBase logo in the top left corner should open the nav.
 add an option for the owner of a household to delete the household in settings
-Take out the Roomies button in the top left, just tapping on the roomies text in the header should open the nav, or swiping right anywhere on the screen.
+Take out the HomeBase button in the top left, just tapping on the homebase text in the header should open the nav, or swiping right anywhere on the screen.
 Hitting the delete button on a household pulls up a delete all button currently, change that to a message that pops up and asks "are you sure you want to delete this household?". Don't clutter the house card there.
 Wifi Keys should have a "connect" button, which will connect you to the network
 Getting the following build error on netlify: src/pages/Lockbox.tsx:166:15 - error TS6133: 'isRevealed' is declared but its value is never read. 166         const isRevealed = revealed.has(item.id)
-When creating a household, the user should have the option to either create a shared household with Hungry or a Roomie specific household
-The Roomies logo is duplicated in the top left. Take out the one that's a button for the nav, the "Roomies" in the header should open up nav when it's tapped, in addition to opening when the user swipes to the right anywhere on screen. And a hamburger button on the top left ONLY FOR DESKTOP, NOT FOR MOBILE.
+When creating a household, the user should have the option to either create a shared household with Pantry or a Roomie specific household
+The HomeBase logo is duplicated in the top left. Take out the one that's a button for the nav, the "HomeBase" in the header should open up nav when it's tapped, in addition to opening when the user swipes to the right anywhere on screen. And a hamburger button on the top left ONLY FOR DESKTOP, NOT FOR MOBILE.
 Add a "done" button to all chores
 Chore calendar should show up on the home page, same with bills. Take the utility booker and pet care off the home page.
 Pending Maintenance work orders should also show up on the home page
 chores aren't showing up in the chore calendar. They get added as a card, but don't show up on the actual calendar with dates
 Sharing a household invite should create a link that the the invitee can just tap on and automatically join the household
 Sometimes features aren't there yet because they're triggered by another event, but tutorial still highlights a blank box on the screen. Show examples of those features, for example the chore sync anthem.
-If user has set a name on AppWare, Roomies should automatically pull that it as the name.
+If user has set a name on LyfeWare, HomeBase should automatically pull that it as the name.
 All the chores added by User A get assigned to User A, instead of the app assigning the chore to household members according to its algorithm. Chores could be in a rotation as well
 Hitting the auction button on chores does nothing
 No Venmo button to settle up split bills
 If User A puts in a bill for 1600, and User B puts in one for 800, the balances are correctly calculated but it doesn't show how much is owed by whom to who
 Once a notice is acknowledged, it should disappear after 5 minutes
 Upon logging in, the onboarding shows for a split second every time
-Items added through Hungry to the shopping list should not show the blue Hungry pill and the "by" portion should say the user who's added it not "by hungry
+Items added through Pantry to the shopping list should not show the blue Pantry pill and the "by" portion should say the user who's added it not "by pantry
 I get this message when I hit connect on wifi password card: Safari cannot open the page because the address is invalid.
 Add a greeting to the header that says "good morning, (user)" or whatever greeting based on the time of the day is appropriate
 Allow users to connect their Venmo account so tapping on split bill will automatically fill in the Venmo user accounts in the Venmo request app
-Add an inventory section in the nav. Import the pantry from Hungry, and show it as section you can tap on to see the full pantry, the rest of the items on the inventory should be non food items in the house, like swiffer pads, etc
+Add an inventory section in the nav. Import the pantry from Pantry, and show it as section you can tap on to see the full pantry, the rest of the items on the inventory should be non food items in the house, like swiffer pads, etc
 Venmo button not showing up on bills page, Mark as paid button doing nothing
 Tapping on bills or property lockbox on the home screen should go to the respective section of the app.
 Look up each chore added and decide on an intensity. Split chores between household members according to intensity. For example, vacuuming once a week is equivalent to taking out the trash twice in the week. Or doing dishes three times in the week is equivalent to cleaning the bathrooms once a week. Tapping on the profile picture next to an assigned chore should allow the user to change who it's assigned to.

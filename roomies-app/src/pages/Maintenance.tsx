@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -48,9 +48,9 @@ export default function Maintenance() {
     let imageUrl: string | null = null
     if (imageFile) {
       const path = `maintenance/${Date.now()}_${imageFile.name}`
-      const { data: up } = await supabase.storage.from('roomies-property-vault').upload(path, imageFile)
+      const { data: up } = await supabase.storage.from('homebase-property-vault').upload(path, imageFile)
       if (up) {
-        const { data: pub } = supabase.storage.from('roomies-property-vault').getPublicUrl(path)
+        const { data: pub } = supabase.storage.from('homebase-property-vault').getPublicUrl(path)
         imageUrl = pub.publicUrl
       }
     }
