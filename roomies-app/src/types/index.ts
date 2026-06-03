@@ -1,4 +1,4 @@
-﻿export type PresenceStatus = 'Available' | 'Sleeping' | 'Quiet Hours / Studying' | 'Work From Home' | 'Away'
+export type PresenceStatus = 'Available' | 'Sleeping' | 'Quiet Hours / Studying' | 'Work From Home' | 'Away'
 export type MemberRole = 'Administrator' | 'Tenant' | 'Landlord'
 export type ChoreRecurrence = 'Twice Weekly' | 'Weekly' | 'Bi-Weekly' | 'Monthly' | 'Quarterly'
 export type ChoreStatus = 'Pending' | 'Completed' | 'Swapped' | 'Auctioned'

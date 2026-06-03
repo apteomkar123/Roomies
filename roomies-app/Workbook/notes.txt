@@ -77,3 +77,4 @@ Add an inventory section in the nav. Import the pantry from Pantry, and show it 
 Venmo button not showing up on bills page, Mark as paid button doing nothing
 Tapping on bills or property lockbox on the home screen should go to the respective section of the app.
 Look up each chore added and decide on an intensity. Split chores between household members according to intensity. For example, vacuuming once a week is equivalent to taking out the trash twice in the week. Or doing dishes three times in the week is equivalent to cleaning the bathrooms once a week. Tapping on the profile picture next to an assigned chore should allow the user to change who it's assigned to.
+Getting the following netlify build error: The build halts while parsing netlify.toml (line 9). Netlify can't read the file because it isn't valid TOML—string values such as your command and publish entries aren't wrapped in quotes, so the parser fails before the build even starts.

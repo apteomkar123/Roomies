@@ -1,5 +1,5 @@
-﻿[build]
-  base    = "__HOMEBASEAPP__"
+[build]
+  base    = "roomies-app"
   command = "npm run build"
   publish = "dist"
 

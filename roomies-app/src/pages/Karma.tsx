@@ -1,4 +1,4 @@
-﻿import { useHousehold } from '../context/HouseholdContext'
+import { useHousehold } from '../context/HouseholdContext'
 import { useAuth } from '../context/AuthContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'

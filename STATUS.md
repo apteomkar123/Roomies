@@ -117,6 +117,10 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`homebase-property-vault`) for maintenance photos and inspection images
 
+### Session 22 (2026-06-03)
+**Bug fixes:**
+- **netlify.toml BOM + wrong base dir** — removed UTF-8 BOM from `netlify.toml` (and 18 other source files that also had BOMs) which caused Netlify's TOML parser to abort at line 9; corrected `base` from `"__HOMEBASEAPP__"` to `"roomies-app"` so Netlify builds from the correct subdirectory
+
 ### Session 21 (2026-06-02)
 **Bug fixes:**
 - **Invite link** — "Share Invite Link" button in Settings generates a shareable URL (`/welcome?invite=CODE`) using the Web Share API (with clipboard fallback); Onboarding auto-detects `?invite=` query param and pre-fills the code
