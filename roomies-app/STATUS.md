@@ -137,6 +137,20 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ---
 
+### Bills (Finance)
+- **Venmo button fix** — Venmo pay link now shows correctly for debtors; added "You're all paid up!" badge when user has no debts; added "You're owed money" card showing user's Venmo to share when they're a creditor; added hint for debtors when creditor hasn't set Venmo
+- **Mark as paid fix** — button now disabled/replaced with "You're all paid up!" when user has no debts; added error display and loading state to prevent silent failures
+
+### Dashboard
+- **Tappable Bills section** — tapping the "Recent Bills" widget navigates to /finance
+- **Tappable Lockbox section** — tapping the "Property Lockbox" widget navigates to /lockbox; Reveal buttons still work in-place without navigating
+
+### Chores
+- **Intensity-based assignment** — new chores auto-detect difficulty (1–5) from their name (vacuuming=3, bathrooms=4, trash=2, etc.); intensity shown as a badge in the add form; workload-balanced assignment spreads harder chores to members with lower current load
+- **Avatar reassign** — tapping the assignee's avatar in "This Week's Rotation" opens an inline member picker to reassign all pending occurrences of that chore
+
+---
+
 ## ❌ Not Yet Implemented / Known Gaps
 
 - Push notifications for notices, maintenance updates, bookings

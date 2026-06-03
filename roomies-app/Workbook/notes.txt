@@ -74,3 +74,6 @@ I get this message when I hit connect on wifi password card: Safari cannot open 
 Add a greeting to the header that says "good morning, (user)" or whatever greeting based on the time of the day is appropriate
 Allow users to connect their Venmo account so tapping on split bill will automatically fill in the Venmo user accounts in the Venmo request app
 Add an inventory section in the nav. Import the pantry from Hungry, and show it as section you can tap on to see the full pantry, the rest of the items on the inventory should be non food items in the house, like swiffer pads, etc
+Venmo button not showing up on bills page, Mark as paid button doing nothing
+Tapping on bills or property lockbox on the home screen should go to the respective section of the app.
+Look up each chore added and decide on an intensity. Split chores between household members according to intensity. For example, vacuuming once a week is equivalent to taking out the trash twice in the week. Or doing dishes three times in the week is equivalent to cleaning the bathrooms once a week. Tapping on the profile picture next to an assigned chore should allow the user to change who it's assigned to.

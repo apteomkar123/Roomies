@@ -228,3 +228,59 @@ UNABLE TO DO
   flagged for a dedicated cleanup pass.
 - Karma Leaderboard page (/karma) is linked in More.tsx but the page component
   does not exist yet.
+
+----------------
+
+SESSION LOG — 2026-06-03 (Changes.md — Venmo/bills fix, dashboard nav, chore intensity)
+=========================================================================================
+
+BUGS FIXED
+----------
+1. Venmo button not showing on Bills page.
+   Root cause: button only renders when t.from === user?.id (current user is the debtor)
+   AND the creditor has venmo_username set. Creditors never saw the button because they
+   are never t.from. Additionally, no guidance existed for creditors to share their Venmo.
+   Fix: Added "You're owed money" card in the Settle Up panel showing the creditor's
+   Venmo handle if set, or a prompt to add it in Settings. Added inline hint for debtors
+   when creditor has no Venmo. Venmo pay link logic unchanged (correct for debtors).
+   Files changed: Finance.tsx.
+
+2. "Mark as paid" button doing nothing.
+   Root cause: the button was always visible in the Settle Up panel (which shows whenever
+   ANY transfer exists), but it only settles splits where debtor_id = current user. If the
+   user is only a creditor, mySplitIds is empty and the call was a no-op — no error, no
+   visible change.
+   Fix: Button now replaced with "✓ You're all paid up!" badge when user has no debts.
+   Added loading state, error display, and success flash. Error handling added to surface
+   silent Supabase failures.
+   Files changed: Finance.tsx.
+
+FEATURES ADDED
+--------------
+3. Tapping "Recent Bills" widget on home screen navigates to /finance.
+   Tapping "Property Lockbox" widget on home screen navigates to /lockbox.
+   "View all →" indicator added to both panels. Reveal/Hide buttons on lockbox
+   call e.stopPropagation() so they don't trigger navigation.
+   Files changed: Dashboard.tsx.
+
+4. Chore intensity auto-detection and workload-balanced assignment.
+   When adding a chore, the system looks up the title against a keyword table and assigns
+   a difficulty 1–5 (Easy/Light/Medium/Hard/Intense). Intensity shown as badge in the
+   add-chore form. Assignment generation for the next 30 days uses a greedy workload-
+   balance algorithm: each occurrence goes to the member with the lowest cumulative
+   intensity from all their existing pending chores. rotation_offset is synced to match
+   the first assignment for consistency with calcChoreAssignee.
+   Files changed: Chores.tsx.
+   DB migration: 006_chore_difficulty.sql — adds difficulty INTEGER NOT NULL DEFAULT 2
+   column to chores table. Run in Supabase SQL Editor.
+   ACTION REQUIRED: run 006_chore_difficulty.sql in the Supabase SQL Editor.
+
+5. Tap avatar to reassign a chore.
+   In "This Week's Rotation", tapping the assignee's avatar/name opens an inline member
+   picker below the row. Selecting a member reassigns all pending assignments for that
+   chore to the chosen member and updates rotation_offset so the formula stays consistent.
+   Files changed: Chores.tsx.
+
+UNABLE TO DO
+------------
+None.

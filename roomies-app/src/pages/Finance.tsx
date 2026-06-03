@@ -11,7 +11,7 @@ import { format } from 'date-fns'
 type Category = 'Rent' | 'Groceries' | 'Utilities' | 'Shared Subscriptions' | 'Miscellaneous Ad-Hoc'
 
 export default function Finance() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { household, memberProfiles } = useHousehold()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [splits, setSplits] = useState<TransactionSplit[]>([])
@@ -21,6 +21,9 @@ export default function Finance() {
   const [category, setCategory] = useState<Category>('Miscellaneous Ad-Hoc')
   const [splitEveryone, setSplitEveryone] = useState(true)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [settling, setSettling] = useState(false)
+  const [settleError, setSettleError] = useState<string | null>(null)
+  const [settleSuccess, setSettleSuccess] = useState(false)
 
   const profileMap = Object.fromEntries(memberProfiles.map(p => [p.id, p.username]))
   const venmoMap = Object.fromEntries(memberProfiles.map(p => [p.id, p.venmo_username ?? null]))
@@ -32,6 +35,10 @@ export default function Finance() {
     toVenmo: venmoMap[t.to] ?? null,
   }))
   const namedBalances = netBalances.map(b => ({ ...b, username: profileMap[b.profileId] ?? b.profileId }))
+
+  // Current user's debts (they owe someone) vs. credits (someone owes them)
+  const myDebtSplits = splits.filter(s => s.debtor_id === user?.id)
+  const myVenmo = profile?.venmo_username ?? null
 
   useEffect(() => {
     if (!household) return
@@ -78,9 +85,20 @@ export default function Finance() {
   }
 
   async function settleAll() {
-    if (!household) return
-    const mySplitIds = splits.filter(s => s.debtor_id === user!.id).map(s => s.id)
-    if (mySplitIds.length) await supabase.from('transaction_splits').update({ settled: true }).in('id', mySplitIds)
+    if (!household || settling) return
+    setSettling(true)
+    setSettleError(null)
+    setSettleSuccess(false)
+
+    const mySplitIds = myDebtSplits.map(s => s.id)
+    if (mySplitIds.length) {
+      const { error } = await supabase.from('transaction_splits').update({ settled: true }).in('id', mySplitIds)
+      if (error) {
+        setSettleError(error.message)
+        setSettling(false)
+        return
+      }
+    }
 
     const { data: remaining } = await supabase
       .from('transaction_splits')
@@ -98,6 +116,9 @@ export default function Finance() {
       }).then(() => {})
     }
 
+    setSettleSuccess(true)
+    setTimeout(() => setSettleSuccess(false), 3000)
+    setSettling(false)
     loadAll()
   }
 
@@ -137,8 +158,43 @@ export default function Finance() {
         <GlassPanel id="tut-finance" style={{ padding: 20, marginBottom: 20, border: '1.5px solid rgba(37,99,235,0.2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Settle Up</div>
-            <button onClick={settleAll} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.12)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Mark My Debts Paid</button>
+            {myDebtSplits.length > 0 ? (
+              <button
+                onClick={settleAll}
+                disabled={settling}
+                style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: settleSuccess ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.12)', color: settleSuccess ? '#059669' : '#059669', fontWeight: 700, cursor: settling ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 13, opacity: settling ? 0.7 : 1 }}
+              >
+                {settling ? '…' : settleSuccess ? '✓ Marked Paid!' : 'Mark My Debts Paid'}
+              </button>
+            ) : (
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,0.1)', borderRadius: 8, padding: '4px 10px' }}>
+                ✓ You're all paid up!
+              </span>
+            )}
           </div>
+
+          {settleError && (
+            <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '8px 12px', color: '#E11D48', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+              {settleError}
+            </div>
+          )}
+
+          {/* Venmo share card for current user when they're owed money */}
+          {namedTransfers.some(t => t.to === user?.id) && (
+            <div style={{ background: 'rgba(0,140,255,0.06)', border: '1px solid rgba(0,140,255,0.15)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#008CFF', marginBottom: 4 }}>💸 You're owed money</div>
+              {myVenmo ? (
+                <div style={{ fontSize: 12, color: '#374151' }}>
+                  Share your Venmo <strong>@{myVenmo}</strong> with your roommates so they can pay you.
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: '#6B7280' }}>
+                  Add your Venmo username in <strong>Settings</strong> so roommates can pay you directly.
+                </div>
+              )}
+            </div>
+          )}
+
           {namedTransfers.map((t, i) => (
             <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -148,15 +204,21 @@ export default function Finance() {
                 <span style={{ color: '#6B7280', fontSize: 13 }}>to</span>
                 <span style={{ fontWeight: 700, fontSize: 15 }}>{t.toName}</span>
               </div>
-              {t.toVenmo && t.from === user?.id && (
-                <a
-                  href={`https://venmo.com/${t.toVenmo}?txn=pay&amount=${t.amount.toFixed(2)}&note=Roomies%20Bill`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, padding: '6px 12px', borderRadius: 8, background: 'rgba(0,140,255,0.1)', color: '#008CFF', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
-                >
-                  💸 Pay via Venmo
-                </a>
+              {t.from === user?.id && (
+                t.toVenmo ? (
+                  <a
+                    href={`https://venmo.com/${t.toVenmo}?txn=pay&amount=${t.amount.toFixed(2)}&note=Roomies%20Bill`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, padding: '6px 12px', borderRadius: 8, background: 'rgba(0,140,255,0.1)', color: '#008CFF', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+                  >
+                    💸 Pay via Venmo
+                  </a>
+                ) : (
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+                    Ask {t.toName} to add their Venmo in Settings to pay directly.
+                  </div>
+                )
               )}
             </div>
           ))}

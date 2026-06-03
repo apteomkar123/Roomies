@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -28,6 +29,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const { user, profile } = useAuth()
   const { household, memberProfiles, presences, reload } = useHousehold()
 
@@ -240,8 +242,11 @@ export default function Dashboard() {
 
       {/* Recent Bills */}
       {transactions.length > 0 && (
-        <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>💰 Recent Bills</div>
+        <GlassPanel onClick={() => navigate('/finance')} style={{ padding: 20, marginBottom: 20, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>💰 Recent Bills</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#2563EB' }}>View all →</div>
+          </div>
           {transactions.slice(0, 3).map(tx => (
             <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -277,8 +282,11 @@ export default function Dashboard() {
       )}
 
       {/* Lockbox */}
-      <GlassPanel id="tut-lockbox" style={{ padding: 20, marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Property Lockbox</div>
+      <GlassPanel id="tut-lockbox" style={{ padding: 20, marginBottom: 20, cursor: 'pointer' }} onClick={() => navigate('/lockbox')}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Property Lockbox</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#2563EB' }}>View all →</div>
+        </div>
         {lockbox.length === 0 && <div style={{ color: '#9CA3AF', fontSize: 14 }}>No secrets stored yet. Add them in the Lockbox page.</div>}
         {lockbox.map(item => {
           const isHidden = item.is_restricted && !revealed.has(item.id)
@@ -291,7 +299,10 @@ export default function Dashboard() {
                 </div>
               </div>
               {item.is_restricted && (
-                <button onClick={() => setRevealed(prev => { const n = new Set(prev); if (n.has(item.id)) n.delete(item.id); else n.add(item.id); return n })} style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#2563EB', fontFamily: 'inherit' }}>
+                <button
+                  onClick={e => { e.stopPropagation(); setRevealed(prev => { const n = new Set(prev); if (n.has(item.id)) n.delete(item.id); else n.add(item.id); return n }) }}
+                  style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#2563EB', fontFamily: 'inherit' }}
+                >
                   {isHidden ? 'Reveal' : 'Hide'}
                 </button>
               )}

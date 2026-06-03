@@ -6,13 +6,38 @@ import { calcChoreAssignee } from '../hooks/useChoreRotation'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 import AvatarHalo from '../components/ui/AvatarHalo'
-import type { Chore, ChoreAssignment, KarmaMarketplace } from '../types'
-import { format, addDays, startOfDay, isSameDay } from 'date-fns'
+import type { Chore, ChoreAssignment, KarmaMarketplace, Profile } from '../types'
+import { format, addDays, startOfDay, isSameDay, differenceInDays } from 'date-fns'
 
 type ChoreRecurrence = 'Twice Weekly' | 'Weekly' | 'Bi-Weekly' | 'Monthly' | 'Quarterly'
 
 const RECURRENCE_DAYS: Record<ChoreRecurrence, number> = {
   'Twice Weekly': 3, 'Weekly': 7, 'Bi-Weekly': 14, 'Monthly': 30, 'Quarterly': 91,
+}
+
+// Intensity lookup: keyword substrings → difficulty (1–5)
+const INTENSITY_RULES: [string[], number][] = [
+  [['mail', 'recycl', 'sort'], 1],
+  [['trash', 'garbage', 'dishes', 'dishwasher', 'laundry', 'grocery', 'groceries', 'cat litter', 'litter box', 'wipe counter', 'table'], 2],
+  [['vacuum', 'sweep', 'kitchen', 'cooking', 'cook dinner', 'windows', 'dusting', 'dust'], 3],
+  [['mop', 'bathroom', 'bathrooms', 'toilet', 'scrub', 'shower', 'floors', 'clean bathroom', 'yard'], 4],
+  [['deep clean', 'spring clean', 'move furniture', 'garage'], 5],
+]
+
+function detectChoreIntensity(title: string): number {
+  const lower = title.toLowerCase()
+  for (const [keywords, intensity] of INTENSITY_RULES) {
+    if (keywords.some(k => lower.includes(k))) return intensity
+  }
+  return 2
+}
+
+const INTENSITY_LABEL: Record<number, { label: string; color: string; bg: string }> = {
+  1: { label: 'Easy', color: '#059669', bg: 'rgba(16,185,129,0.1)' },
+  2: { label: 'Light', color: '#2563EB', bg: 'rgba(37,99,235,0.1)' },
+  3: { label: 'Medium', color: '#D97706', bg: 'rgba(245,158,11,0.1)' },
+  4: { label: 'Hard', color: '#DC2626', bg: 'rgba(239,68,68,0.1)' },
+  5: { label: 'Intense', color: '#7C3AED', bg: 'rgba(139,92,246,0.1)' },
 }
 
 export default function Chores() {
@@ -25,8 +50,11 @@ export default function Chores() {
   const [showAddChore, setShowAddChore] = useState(false)
   const [title, setTitle] = useState('')
   const [recurrence, setRecurrence] = useState<ChoreRecurrence>('Weekly')
+  const [detectedDifficulty, setDetectedDifficulty] = useState(2)
   const [nutritionBoostActive, setNutritionBoostActive] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // Reassign UI: holds { choreId, memberId picker open }
+  const [reassignChoreId, setReassignChoreId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -71,7 +99,6 @@ export default function Chores() {
     const assignmentList = ((a ?? []) as ChoreAssignment[]).filter(as => choreIds.has(as.chore_id))
     setAssignments(assignmentList)
 
-    // Filter marketplace items to only this household's chores (via chore_assignments.chore_id)
     setMarketplace(((m ?? []) as KarmaMarketplace[]).filter(item =>
       item.chore_assignments?.chore_id && choreIds.has(item.chore_assignments.chore_id)
     ))
@@ -84,28 +111,50 @@ export default function Chores() {
     if (!title.trim() || !household) return
     setSaveError(null)
     const activeMembers = memberProfiles.filter(m => !m.away)
-    // Stagger rotation_offset so each chore starts at a different member in the cycle
-    const rotationOffset = activeMembers.length > 1 ? chores.length % activeMembers.length : 0
+    const difficulty = detectedDifficulty
+
     const { data: newChore, error } = await supabase.from('chores')
-      .insert({ household_id: household.id, title: title.trim(), recurrence, rotation_offset: rotationOffset })
+      .insert({ household_id: household.id, title: title.trim(), recurrence, rotation_offset: 0, difficulty })
       .select().single()
     if (error || !newChore) { setSaveError(error?.message ?? 'Failed'); return }
 
-    // Auto-generate assignments for the next 30 days
-    const periodDays = RECURRENCE_DAYS[recurrence]
     if (activeMembers.length > 0) {
-      const assignments: { chore_id: string; assigned_to: string; due_date: string; status: string }[] = []
+      // Build workload map from current pending assignments (intensity × count)
+      const workloadMap: Record<string, number> = {}
+      for (const m of activeMembers) workloadMap[m.id] = 0
+      for (const a of assignments) {
+        const c = chores.find(ch => ch.id === a.chore_id)
+        workloadMap[a.assigned_to] = (workloadMap[a.assigned_to] ?? 0) + (c?.difficulty ?? 2)
+      }
+
+      const periodDays = RECURRENCE_DAYS[recurrence]
+      const newAssignments: { chore_id: string; assigned_to: string; due_date: string; status: string }[] = []
       let due = startOfDay(new Date())
       const end = addDays(new Date(), 30)
+
       while (due <= end) {
-        const assignee = calcChoreAssignee(newChore as Chore, activeMembers, due)
-        if (assignee) assignments.push({ chore_id: newChore.id, assigned_to: assignee.id, due_date: due.toISOString(), status: 'Pending' })
+        // Assign to the member with the lowest current workload
+        let assignee = activeMembers[0]
+        for (const m of activeMembers) {
+          if ((workloadMap[m.id] ?? 0) < (workloadMap[assignee.id] ?? 0)) assignee = m
+        }
+        newAssignments.push({ chore_id: newChore.id, assigned_to: assignee.id, due_date: due.toISOString(), status: 'Pending' })
+        workloadMap[assignee.id] = (workloadMap[assignee.id] ?? 0) + difficulty
         due = addDays(due, periodDays)
       }
-      if (assignments.length > 0) await supabase.from('chore_assignments').insert(assignments)
+
+      if (newAssignments.length > 0) {
+        await supabase.from('chore_assignments').insert(newAssignments)
+        // Sync rotation_offset so calcChoreAssignee matches first assignment
+        const firstAssigneeId = newAssignments[0]?.assigned_to
+        const firstIdx = activeMembers.findIndex(m => m.id === firstAssigneeId)
+        if (firstIdx >= 0) {
+          await supabase.from('chores').update({ rotation_offset: firstIdx }).eq('id', newChore.id)
+        }
+      }
     }
 
-    setTitle(''); setShowAddChore(false); loadAll()
+    setTitle(''); setDetectedDifficulty(2); setShowAddChore(false); loadAll()
   }
 
   async function deleteChore(id: string) {
@@ -157,6 +206,27 @@ export default function Chores() {
     loadAll()
   }
 
+  async function reassignChore(chore: Chore, newMember: Profile) {
+    const activeMembers = memberProfiles.filter(m => !m.away)
+    // Reassign all pending assignments for this chore to the selected member
+    await supabase.from('chore_assignments')
+      .update({ assigned_to: newMember.id })
+      .eq('chore_id', chore.id)
+      .eq('status', 'Pending')
+
+    // Update rotation_offset so the formula also points to this member going forward
+    const periodDays = RECURRENCE_DAYS[chore.recurrence as ChoreRecurrence] ?? 7
+    const elapsed = Math.floor(differenceInDays(new Date(), new Date(chore.created_at)) / periodDays)
+    const targetIdx = activeMembers.findIndex(m => m.id === newMember.id)
+    if (targetIdx >= 0 && activeMembers.length > 0) {
+      const newOffset = ((targetIdx - elapsed) % activeMembers.length + activeMembers.length) % activeMembers.length
+      await supabase.from('chores').update({ rotation_offset: newOffset }).eq('id', chore.id)
+    }
+
+    setReassignChoreId(null)
+    loadAll()
+  }
+
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
@@ -164,7 +234,7 @@ export default function Chores() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontWeight: 900, fontSize: 28, margin: 0, letterSpacing: '-0.5px' }}>Chores</h1>
-          <div style={{ color: '#6B7280', fontSize: 14 }}>Rotation-based assignments</div>
+          <div style={{ color: '#6B7280', fontSize: 14 }}>Intensity-balanced assignments</div>
         </div>
         <button onClick={() => setShowAddChore(!showAddChore)} style={{ background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', border: 'none', borderRadius: 14, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
           + Add
@@ -174,7 +244,21 @@ export default function Chores() {
       {showAddChore && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
           {saveError && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{saveError}</div>}
-          <input className="glass-input" placeholder="Chore name (e.g. Take out trash)" value={title} onChange={e => setTitle(e.target.value)} style={{ marginBottom: 12 }} />
+          <input
+            className="glass-input"
+            placeholder="Chore name (e.g. Take out trash)"
+            value={title}
+            onChange={e => { setTitle(e.target.value); setDetectedDifficulty(detectChoreIntensity(e.target.value)) }}
+            style={{ marginBottom: 8 }}
+          />
+          {title.trim() && (
+            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>Detected intensity:</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: INTENSITY_LABEL[detectedDifficulty].color, background: INTENSITY_LABEL[detectedDifficulty].bg, borderRadius: 6, padding: '2px 8px' }}>
+                {detectedDifficulty}/5 · {INTENSITY_LABEL[detectedDifficulty].label}
+              </span>
+            </div>
+          )}
           <select value={recurrence} onChange={e => setRecurrence(e.target.value as ChoreRecurrence)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 15, marginBottom: 14, fontFamily: 'inherit' }}>
             {['Twice Weekly','Weekly','Bi-Weekly','Monthly','Quarterly'].map(r => <option key={r}>{r}</option>)}
           </select>
@@ -215,22 +299,53 @@ export default function Chores() {
           {chores.map(chore => {
             const assignee = calcChoreAssignee(chore, memberProfiles)
             const myAssignment = assignments.find(a => a.chore_id === chore.id && a.assigned_to === user?.id)
+            const diff = chore.difficulty ?? 2
+            const intensityInfo = INTENSITY_LABEL[diff] ?? INTENSITY_LABEL[2]
+            const isReassigning = reassignChoreId === chore.id
             return (
-              <div key={chore.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{chore.title}</div>
-                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{chore.recurrence}</div>
+              <div key={chore.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: isReassigning ? 'none' : '1px solid rgba(0,0,0,0.06)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 700, fontSize: 15 }}>{chore.title}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: intensityInfo.color, background: intensityInfo.bg, borderRadius: 5, padding: '1px 6px' }}>{intensityInfo.label}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{chore.recurrence}</div>
+                  </div>
+                  {assignee && (
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 12, cursor: 'pointer' }}
+                      onClick={() => setReassignChoreId(isReassigning ? null : chore.id)}
+                      title="Tap to reassign this chore"
+                    >
+                      <AvatarHalo avatarUrl={assignee.avatar_url} status="Available" size={32} username={assignee.username} />
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{assignee.username}</span>
+                    </div>
+                  )}
+                  {myAssignment && (
+                    <button onClick={() => markDone(myAssignment.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, marginRight: 6 }}>✓</button>
+                  )}
+                  <button onClick={() => deleteChore(chore.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
                 </div>
-                {assignee && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
-                    <AvatarHalo avatarUrl={assignee.avatar_url} status="Available" size={32} username={assignee.username} />
-                    <span style={{ fontWeight: 700, fontSize: 13 }}>{assignee.username}</span>
+
+                {/* Inline reassign picker */}
+                {isReassigning && (
+                  <div style={{ padding: '10px 0 14px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(37,99,235,0.03)', borderRadius: 8, marginBottom: 2 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', marginBottom: 8, paddingLeft: 4 }}>Assign to:</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingLeft: 4 }}>
+                      {memberProfiles.map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => reassignChore(chore, m)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, border: assignee?.id === m.id ? '2px solid #2563EB' : '1.5px solid rgba(0,0,0,0.1)', background: assignee?.id === m.id ? 'rgba(37,99,235,0.1)' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13, color: '#374151' }}
+                        >
+                          <AvatarHalo avatarUrl={m.avatar_url} status="Available" size={22} username={m.username} />
+                          {m.username}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {myAssignment && (
-                  <button onClick={() => markDone(myAssignment.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, marginRight: 6 }}>✓</button>
-                )}
-                <button onClick={() => deleteChore(chore.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
               </div>
             )
           })}
