@@ -168,8 +168,8 @@ export default function Tutorial() {
         }
       `}</style>
 
-      {/* Click-to-advance backdrop */}
-      <div onClick={next} style={{ position: 'fixed', inset: 0, zIndex: 1000, cursor: 'pointer' }} />
+      {/* Click-to-advance backdrop + dim overlay */}
+      <div onClick={next} style={{ position: 'fixed', inset: 0, zIndex: 1000, cursor: 'pointer', background: isFallback ? 'rgba(0,0,0,0.68)' : 'transparent' }} />
 
       {/* Example card for empty-state features */}
       {rect && isFallback && current.preview && (
@@ -178,32 +178,35 @@ export default function Tutorial() {
           top: rect.top,
           left: rect.left,
           width: rect.width,
-          height: rect.height,
-          borderRadius: 14,
+          borderRadius: 16,
           zIndex: 1001,
           pointerEvents: 'none',
-          background: 'rgba(255,255,255,0.08)',
-          border: '1.5px solid rgba(139,92,246,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '10px 16px',
+          background: 'linear-gradient(135deg, rgba(30,20,60,0.96), rgba(20,20,50,0.98))',
+          border: '1.5px solid rgba(139,92,246,0.7)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+          padding: '14px 18px',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(139,92,246,0.9)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Example Preview
+          </div>
           <pre style={{
             margin: 0,
             fontFamily: 'inherit',
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.85)',
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.95)',
             fontWeight: 600,
-            lineHeight: 1.7,
+            lineHeight: 1.9,
             whiteSpace: 'pre',
             textAlign: 'left',
+            textShadow: '0 1px 3px rgba(0,0,0,0.4)',
           }}>{current.preview}</pre>
         </div>
       )}
 
-      {/* Spotlight ring around target */}
-      {rect && <div style={spotStyle} />}
+      {/* Spotlight ring around target — skip for fallback cards (card border serves this role) */}
+      {rect && !isFallback && <div style={spotStyle} />}
 
       {/* Tooltip card */}
       {rect && (
@@ -228,12 +231,6 @@ export default function Tutorial() {
               }} />
             ))}
           </div>
-
-          {isFallback && (
-            <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              Example Preview
-            </div>
-          )}
 
           <div style={{ fontWeight: 800, fontSize: 15, color: '#111827', marginBottom: 6 }}>{current.title}</div>
           <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.6 }}>{current.desc}</div>

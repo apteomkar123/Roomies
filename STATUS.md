@@ -117,6 +117,18 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`homebase-property-vault`) for maintenance photos and inspection images
 
+### Session 24 (2026-06-04)
+**Bug fixes:**
+- **Inventory item add** — Created migration `008_shopping_list_quantity.sql` which creates `household_inventory` table (idempotent `IF NOT EXISTS`) with correct RLS policies and realtime subscription; fixes silent failure when table was missing from the database.
+- **Shopping list quantity error** — Added `quantity numeric NOT NULL DEFAULT 1` column to `shopping_list` table in migration 008; fixes "Could not find the 'quantity' column of 'shopping_list' in the schema cache" error when adding items from HomeBase to the shared Pantry shopping list.
+- **Add food items from HomeBase to Pantry** — Resolved by fixing the shopping list quantity column above; `Shopping.tsx addItem()` already wrote to `shopping_list` but was blocked by the missing column.
+- **Tutorial preview cards legibility** — Fallback cards for empty-state features now render on a dark opaque gradient background (`rgba(30,20,60,0.96)`) with a purple border, white text with `textShadow`, and an "Example Preview" header label. The full-screen dim overlay is now applied via the backdrop div when `isFallback` is true (previously the spotlight ring box-shadow was doing this but was absent for fallbacks). Removed duplicate "Example Preview" label from tooltip card.
+
+**Schema changes:**
+- `shopping_list` — new column `quantity numeric NOT NULL DEFAULT 1`
+- `household_inventory` — added to unified schema (`appware_unified_schema.sql`) with DROP/CREATE, RLS policies, and realtime subscription; previously only existed in migration 005.
+- Run migration `008_shopping_list_quantity.sql` in Supabase SQL Editor.
+
 ### Session 23 (2026-06-03)
 **Features added:**
 - **Tutorial example cards for empty-state features** — Tutorial.tsx now tracks `isFallback` state. When a feature element isn't found (e.g. empty chores/finance list), renders a visual demo card at the spotlight position showing example data instead of highlighting blank space. Each STEP has a `preview` string.
