@@ -79,11 +79,14 @@ A living document tracking what's shipped, what works, and what's pending.
 - Household supplies tracking (Cleaning, Paper Goods, Toiletries, Laundry, Other categories)
 - Add / remove supply items manually
 - **Non-food items auto-sync from Pantry** — when a user scans a receipt or barcode in the Pantry app and a non-food item is detected, it is automatically inserted into HomeBase's `household_inventory` table; a violet toast notification "X non-food items added to HomeBase inventory" appears in Pantry
+- **Add Food Item from HomeBase** — type toggle (Supply / Food Item) in the add form; Food Item mode shows food categories + optional expiry date and inserts into `fridge_inventory` (Pantry's table), syncing directly to Pantry's fridge view for the household
+- **RLS fix** — migration `007_fix_cross_app_rls.sql` recreates `household_inventory` INSERT/UPDATE policies using the correct explicit `WITH CHECK` pattern; no more "row violates row-level security" errors
 
 ### Shopping
 - Shared household shopping list
 - Add / remove items, mark as bought
 - **Pantry sync** — adding items fires a cross_app_activity event to sync with Pantry
+- **Error display** — failed inserts now show an inline error message instead of silently doing nothing; root cause: `shopping_list` RLS required `active_household_id` in profiles; migration 007 extends the policy to also accept membership via `household_members`
 
 ### Pets
 - Pet care log (Morning Feed, Evening Feed, Daily Walk, Medication Administered)

@@ -18,6 +18,7 @@ export default function Shopping() {
   const [title, setTitle] = useState('')
   const [qty, setQty] = useState('1')
   const [urgent, setUrgent] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!household) return
@@ -67,8 +68,8 @@ export default function Shopping() {
 
   async function addItem() {
     if (!title.trim() || !household) return
-    // Write to shared shopping_list (Pantry's table) so the item appears in both apps
-    await supabase.from('shopping_list').insert({
+    setAddError(null)
+    const { error } = await supabase.from('shopping_list').insert({
       user_id: user!.id,
       household_id: household.id,
       item_name: title.trim(),
@@ -76,6 +77,7 @@ export default function Shopping() {
       is_urgent: urgent,
       is_completed: false,
     })
+    if (error) { setAddError(error.message); return }
     supabase.from('cross_app_activity').insert({
       user_id: user!.id,
       app: 'homebase',
@@ -114,6 +116,7 @@ export default function Shopping() {
       <h1 style={{ fontWeight: 900, fontSize: 28, margin: '0 0 24px', letterSpacing: '-0.5px' }}>Shopping List</h1>
 
       <GlassPanel id="tut-shopping" style={{ padding: 20, marginBottom: 20 }}>
+        {addError && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{addError}</div>}
         <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
           <input className="glass-input" placeholder="Add item…" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} style={{ flex: 1 }} />
           <input className="glass-input" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value)} style={{ width: 70 }} />

@@ -26,6 +26,7 @@ interface HouseholdItem {
 }
 
 const SUPPLY_CATEGORIES = ['Cleaning', 'Paper Goods', 'Toiletries', 'Laundry', 'Other']
+const FOOD_CATEGORIES = ['Produce', 'Dairy', 'Meat', 'Pantry', 'Frozen', 'Beverages', 'Snacks', 'Other']
 
 export default function Inventory() {
   const { user } = useAuth()
@@ -35,10 +36,12 @@ export default function Inventory() {
   const [supplies, setSupplies] = useState<HouseholdItem[]>([])
   const [pantryOpen, setPantryOpen] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [addType, setAddType] = useState<'supply' | 'food'>('supply')
   const [itemName, setItemName] = useState('')
   const [category, setCategory] = useState('Other')
   const [qty, setQty] = useState('1')
   const [unit, setUnit] = useState('')
+  const [expiryDate, setExpiryDate] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -79,6 +82,23 @@ export default function Inventory() {
     setItemName(''); setQty('1'); setUnit(''); setShowAdd(false); load()
   }
 
+  async function addFoodItem() {
+    if (!itemName.trim() || !household || !user) return
+    setSaveError(null)
+    const { error } = await supabase.from('fridge_inventory').insert({
+      user_id: user.id,
+      household_id: household.id,
+      item_name: itemName.trim(),
+      category: category || null,
+      quantity: parseFloat(qty) || 1,
+      unit: unit.trim() || null,
+      expiry_date: expiryDate || null,
+      is_household: true,
+    })
+    if (error) { setSaveError(error.message); return }
+    setItemName(''); setQty('1'); setUnit(''); setExpiryDate(''); setShowAdd(false); load()
+  }
+
   async function deleteItem(id: string) {
     await supabase.from('household_inventory').delete().eq('id', id)
     load()
@@ -105,15 +125,33 @@ export default function Inventory() {
       {showAdd && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
           {saveError && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#E11D48', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{saveError}</div>}
-          <input className="glass-input" placeholder="Item name (e.g. Swiffer pads)" value={itemName} onChange={e => setItemName(e.target.value)} style={{ marginBottom: 12 }} />
+          {/* Type toggle */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, background: 'rgba(0,0,0,0.04)', borderRadius: 12, padding: 4 }}>
+            {(['supply', 'food'] as const).map(t => (
+              <button key={t} onClick={() => { setAddType(t); setCategory(t === 'food' ? 'Other' : 'Other'); setSaveError(null) }}
+                style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  background: addType === t ? 'white' : 'transparent',
+                  color: addType === t ? '#2563EB' : '#6B7280',
+                  boxShadow: addType === t ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                }}>
+                {t === 'supply' ? '🏠 Supply' : '🥦 Food Item'}
+              </button>
+            ))}
+          </div>
+          <input className="glass-input" placeholder={addType === 'food' ? 'Item name (e.g. Milk)' : 'Item name (e.g. Swiffer pads)'} value={itemName} onChange={e => setItemName(e.target.value)} style={{ marginBottom: 12 }} />
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             <input className="glass-input" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value)} style={{ width: 80 }} />
-            <input className="glass-input" placeholder="Unit (e.g. rolls)" value={unit} onChange={e => setUnit(e.target.value)} style={{ flex: 1 }} />
+            <input className="glass-input" placeholder="Unit (e.g. liters)" value={unit} onChange={e => setUnit(e.target.value)} style={{ flex: 1 }} />
           </div>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 15, marginBottom: 14, fontFamily: 'inherit' }}>
-            {SUPPLY_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          <select value={category} onChange={e => setCategory(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 15, marginBottom: addType === 'food' ? 12 : 14, fontFamily: 'inherit' }}>
+            {(addType === 'food' ? FOOD_CATEGORIES : SUPPLY_CATEGORIES).map(c => <option key={c}>{c}</option>)}
           </select>
-          <button className="btn-blue" onClick={addItem}>Add Item</button>
+          {addType === 'food' && (
+            <input type="date" className="glass-input" placeholder="Expiry date (optional)" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} style={{ marginBottom: 14 }} />
+          )}
+          <button className="btn-blue" onClick={addType === 'food' ? addFoodItem : addItem}>
+            Add {addType === 'food' ? 'Food Item' : 'Supply'}
+          </button>
         </GlassPanel>
       )}
 
