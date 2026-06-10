@@ -49,6 +49,7 @@ export default function Inventory() {
     load()
     const ch = supabase.channel(`inventory:${household.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'household_inventory', filter: `household_id=eq.${household.id}` }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fridge_inventory', filter: `household_id=eq.${household.id}` }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [household]) // eslint-disable-line react-hooks/exhaustive-deps

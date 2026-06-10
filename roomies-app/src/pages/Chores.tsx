@@ -41,7 +41,7 @@ const INTENSITY_LABEL: Record<number, { label: string; color: string; bg: string
 }
 
 export default function Chores() {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const { household, memberProfiles } = useHousehold()
   const [chores, setChores] = useState<Chore[]>([])
   const [assignments, setAssignments] = useState<ChoreAssignment[]>([])
@@ -169,7 +169,10 @@ export default function Chores() {
     const choreDifficulty = chores.find(c => c.id === doneAssignment?.chore_id)?.difficulty ?? 2
 
     await supabase.from('chore_assignments').update({ status: 'Completed', completed_at: new Date().toISOString() }).eq('id', id)
-    if (profile) await supabase.from('profiles').update({ karma: (profile.karma ?? 100) + 10 }).eq('id', user!.id)
+    if (profile) {
+      await supabase.from('profiles').update({ karma: (profile.karma ?? 100) + 10 }).eq('id', user!.id)
+      await refreshProfile()
+    }
 
     supabase.from('cross_app_activity').insert({
       user_id: user!.id,
@@ -202,7 +205,10 @@ export default function Chores() {
   async function claimFromMarket(item: KarmaMarketplace) {
     await supabase.from('chore_assignments').update({ assigned_to: user!.id, status: 'Pending' }).eq('id', item.assignment_id)
     await supabase.from('karma_marketplace').update({ is_open: false }).eq('id', item.id)
-    if (item.karma_bounty > 0) await supabase.from('profiles').update({ karma: (profile?.karma ?? 100) + item.karma_bounty }).eq('id', user!.id)
+    if (item.karma_bounty > 0) {
+      await supabase.from('profiles').update({ karma: (profile?.karma ?? 100) + item.karma_bounty }).eq('id', user!.id)
+      await refreshProfile()
+    }
     loadAll()
   }
 
@@ -333,7 +339,7 @@ export default function Chores() {
                   <div style={{ padding: '10px 0 14px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(37,99,235,0.03)', borderRadius: 8, marginBottom: 2 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', marginBottom: 8, paddingLeft: 4 }}>Assign to:</div>
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingLeft: 4 }}>
-                      {memberProfiles.map(m => (
+                      {memberProfiles.filter(m => !m.away).map(m => (
                         <button
                           key={m.id}
                           onClick={() => reassignChore(chore, m)}
@@ -372,7 +378,9 @@ export default function Chores() {
               <div key={a.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{a.chores?.title ?? 'Task'}</div>
-                  <div style={{ fontSize: 12, color: '#9CA3AF' }}>Due {format(new Date(a.due_date), 'MMM d')}</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF' }}>
+                    {!isMe && `${a.profiles?.username ?? 'Someone'} · `}Due {format(new Date(a.due_date), 'MMM d')}
+                  </div>
                 </div>
                 {isMe && (
                   <div style={{ display: 'flex', gap: 8 }}>

@@ -40,15 +40,13 @@ export default function Pets() {
   async function load() {
     if (!household) return
     const today = startOfDay(new Date()).toISOString()
-    const { data } = await supabase
-      .from('pet_logs')
-      .select('*, profiles(username)')
-      .eq('household_id', household.id)
-      .gte('action_at', today)
-      .order('action_at', { ascending: false })
+    const [{ data }, { data: allNameData }] = await Promise.all([
+      supabase.from('pet_logs').select('*, profiles(username)').eq('household_id', household.id).gte('action_at', today).order('action_at', { ascending: false }),
+      supabase.from('pet_logs').select('pet_name').eq('household_id', household.id),
+    ])
     const d = (data ?? []) as PetLog[]
     setLogs(d)
-    const namesFromDB = [...new Set(d.map(l => l.pet_name))]
+    const namesFromDB = [...new Set((allNameData ?? []).map((l: { pet_name: string }) => l.pet_name))]
     if (namesFromDB.length) {
       setPetNames(prev => {
         const merged = [...new Set([...prev, ...namesFromDB])]

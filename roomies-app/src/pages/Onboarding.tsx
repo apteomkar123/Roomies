@@ -194,7 +194,9 @@ export default function Onboarding() {
 
     if (pendingPhotoFile) {
       const url = await uploadPhoto(pendingPhotoFile, 'homebase')
-      if (url) finalAvatar = url
+      // Only promote to global avatar_url if the user has no existing LyfeWare avatar;
+      // if they do, homebase_avatar_url is already set inside uploadPhoto() — preserve the global one.
+      if (url && !profile?.avatar_url) finalAvatar = url
       setPendingPhotoFile(null)
     }
 

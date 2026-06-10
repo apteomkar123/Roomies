@@ -284,3 +284,139 @@ FEATURES ADDED
 UNABLE TO DO
 ------------
 None.
+
+----------------
+
+SESSION LOG — 2026-06-09 (DetailedTesting.md — QA pass + 6 bug fixes)
+=======================================================================
+
+BUGS FIXED
+----------
+1. Bookings end-time dropdown still displayed 24-hour format (e.g. "09:00", "21:00").
+   Start-time dropdown already used fmt12() (12-hour AM/PM) since a previous session,
+   but the end-time dropdown still used `h.toString().padStart(2,'0')}:00`.
+   Fix: Changed end-time option label to use fmt12(h).
+   File changed: src/pages/Bookings.tsx (line 177).
+
+2. Guests page had no delete functionality.
+   notes.txt line 47 requested "users should be able to delete guests."
+   A delete button existed in code per notes, but was never implemented.
+   Fix: Added deleteLog(id) async function and a conditional ✕ button
+   visible only to the host (log.host_id === user?.id).
+   File changed: src/pages/Guests.tsx.
+
+3. Inventory food items (fridge_inventory) had no real-time subscription.
+   The Supabase Realtime channel only subscribed to household_inventory.
+   Food items added in the Pantry app were invisible until manual page refresh.
+   Fix: Added a second .on() handler for fridge_inventory in the same channel.
+   File changed: src/pages/Inventory.tsx.
+
+4. Pets page — pet names not visible to other household members.
+   load() queried pet_logs filtered to today's date for name discovery.
+   If no one logged actions today, other devices showed an empty pet list.
+   Fix: Added a separate all-time query for pet_name column, merged with
+   localStorage names so all pets are visible regardless of log date.
+   File changed: src/pages/Pets.tsx.
+
+5. Onboarding step 2 — uploading a HomeBase-specific photo overwrote the
+   global LyfeWare avatar_url in profiles.
+   uploadPhoto('homebase') correctly stores homebase_avatar_url, but handleProfile()
+   then used the returned homebase URL as finalAvatar, overwriting avatar_url globally.
+   Fix: Only use the homebase URL as finalAvatar when profile.avatar_url is null
+   (new user). If the user already has a global LyfeWare avatar, preserve it.
+   File changed: src/pages/Onboarding.tsx.
+
+6. Tutorial — hamburger nav button (tut-nav-open) causes a broken 0×0 spotlight on mobile.
+   The element exists in the DOM but is CSS display:none on mobile (<640px).
+   getBoundingClientRect() returns {width:0, height:0} and find() accepted it,
+   setting a spotlight at (-10,-10) with 20×20 dimensions — invisible and broken.
+   Fix: find() now checks r.width > 0 && r.height > 0 before accepting the element.
+   On mobile the element is not found and the fallback preview card is shown instead.
+   File changed: src/components/Tutorial.tsx.
+
+UNABLE TO DO
+------------
+None — all 6 bugs fixed and TypeScript verified (npx tsc --noEmit: zero errors).
+
+----------------
+
+SESSION LOG — 2026-06-10 (CodeCheck.md — full audit + 5 bug fixes)
+====================================================================
+
+BUGS FIXED
+----------
+1. Finance.tsx — $0 transaction allowed.
+   addTransaction() only checked `!amount` (falsy), so entering "0" passed and
+   inserted a zero-amount transaction with splits. No visible error shown.
+   Fix: Added `parseFloat(amount) <= 0` guard to return early.
+   File changed: src/pages/Finance.tsx.
+
+2. Chores.tsx — Reassign picker showed Away members.
+   The inline member picker in "This Week's Rotation" listed all memberProfiles,
+   including those with away=true. Selecting an Away member would update DB
+   assignments but skip updating rotation_offset (the targetIdx check returns -1
+   for Away members), causing permanent rotation drift.
+   Fix: Changed picker render from memberProfiles.map to
+   memberProfiles.filter(m => !m.away).map.
+   File changed: src/pages/Chores.tsx.
+
+3. Chores.tsx — Pending Tasks showed no assignee for other members' tasks.
+   The "Pending Tasks" section fetches all pending assignments for the household,
+   but only showed "Due [date]" with no indication of who the task belongs to.
+   Other members' tasks appeared alongside the current user's tasks anonymously.
+   Fix: Added `{!isMe && \`${a.profiles?.username ?? 'Someone'} · \`}` prefix to
+   the due date line so non-user tasks show "Alex · Due Jun 12".
+   File changed: src/pages/Chores.tsx.
+
+4. Shopping.tsx — Realtime subscriptions fired on all households' changes.
+   Both .on() handlers for shopping_items and shopping_list had no filter
+   parameter, so Supabase delivered realtime events from every household in the
+   system. Each foreign household's shopping update triggered a full reload.
+   Fix: Added filter: \`household_id=eq.${household.id}\` to both handlers.
+   File changed: src/pages/Shopping.tsx.
+
+5. useGuestSurcharge.ts — $0 surcharge shown when no utility bills logged.
+   When a guest overstays but no Utility-category transactions exist in the
+   billing month, utilityTotal = 0 and surcharge = 0. The hook still returned a
+   result, which showed "+$0.00 utility surcharge applied to host" in Guests.tsx.
+   Fix: Changed final filter from r !== null to r !== null && r.surchargeAmount > 0.
+   File changed: src/hooks/useGuestSurcharge.ts.
+
+UNABLE TO DO
+------------
+None — all 5 bugs fixed and TypeScript verified (npx tsc --noEmit: zero errors).
+
+
+SESSION LOG — 2026-06-10 (Guest Surcharge Removal)
+====================================================
+
+FEATURE REMOVED
+---------------
+Guest surcharge feature removed entirely per user request.
+
+1. Deleted: src/hooks/useGuestSurcharge.ts
+   The hook fetched coliving_agreements.guest_overstay_rules + Utilities
+   transactions to calculate a per-night surcharge for guests who stayed beyond
+   the household maximum. No longer needed.
+
+2. Rewrote: src/pages/Guests.tsx
+   Removed: useGuestSurcharge import, Transaction + CoLivingAgreement type
+   imports, surcharge/agreement state, parallel transactions+agreement queries
+   in loadAll(), surcharge alert GlassPanel, maxNights/maxMatch logic,
+   Overstay badge on guest cards, red card border for overstaying guests,
+   "max X nights" subheading.
+   Kept: add guest form, delete by host (✕ button), display of nights stayed.
+   Subheading changed from "Guest log · max X nights" to "Guest visit log".
+
+   Note: CoLivingAgreement type in types/index.ts was NOT removed — it is still
+   used by Onboarding.tsx step 4B (joiner house-rules review screen).
+
+CHECKS
+------
+- TypeScript (npx tsc --noEmit): zero errors
+- STATUS.md updated: Session 26 entry added
+- Documentation.txt: this entry
+
+UNABLE TO DO
+------------
+None.

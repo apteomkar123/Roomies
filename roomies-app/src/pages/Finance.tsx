@@ -63,7 +63,7 @@ export default function Finance() {
   }
 
   async function addTransaction() {
-    if (!amount || !household) return
+    if (!amount || parseFloat(amount) <= 0 || !household) return
     setSaveError(null)
     const { data: tx, error } = await supabase
       .from('transactions')

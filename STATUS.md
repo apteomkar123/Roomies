@@ -117,6 +117,12 @@
 - `is_household_member()` helper function avoids RLS recursion
 - Supabase Storage bucket (`homebase-property-vault`) for maintenance photos and inspection images
 
+### Session 25 (2026-06-09)
+**Bug fixes:**
+- **Bookings end time in 24-hour format** — End hour dropdown in the booking form was using `h.toString().padStart(2,'0')}:00` (24h), now uses `fmt12(h)` for consistent 12-hour AM/PM display matching the start hour dropdown.
+- **Guests page — no delete button** — Users had no way to remove guest log entries. Added `deleteLog()` function and a ✕ delete button on each guest card (only visible to the host who logged the guest).
+- **Inventory fridge_inventory real-time** — `household_inventory` had a Supabase real-time subscription but `fridge_inventory` (the Pantry food table) did not. Added subscription so the food pantry section updates live when Pantry adds or removes items.
+
 ### Session 24 (2026-06-04)
 **Bug fixes:**
 - **Inventory item add** — Created migration `008_shopping_list_quantity.sql` which creates `household_inventory` table (idempotent `IF NOT EXISTS`) with correct RLS policies and realtime subscription; fixes silent failure when table was missing from the database.

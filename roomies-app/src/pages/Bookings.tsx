@@ -174,7 +174,7 @@ export default function Bookings() {
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', display: 'block', marginBottom: 6 }}>End</label>
               <select value={endHour} onChange={e => setEndHour(+e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
-                {hours.filter(h => h > startHour).map(h => <option key={h} value={h}>{h.toString().padStart(2,'0')}:00</option>)}
+                {hours.filter(h => h > startHour).map(h => <option key={h} value={h}>{fmt12(h)}</option>)}
               </select>
             </div>
           </div>

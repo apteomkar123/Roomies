@@ -159,6 +159,24 @@ A living document tracking what's shipped, what works, and what's pending.
 - **Intensity-based assignment** — new chores auto-detect difficulty (1–5) from their name (vacuuming=3, bathrooms=4, trash=2, etc.); intensity shown as a badge in the add form; workload-balanced assignment spreads harder chores to members with lower current load
 - **Avatar reassign** — tapping the assignee's avatar in "This Week's Rotation" opens an inline member picker to reassign all pending occurrences of that chore
 
+### CodeCheck Bug Fixes
+- **Finance $0 validation** — `addTransaction()` now guards `parseFloat(amount) <= 0`; previously a "$0" entry would silently insert a zero-amount transaction
+- **Chores reassign picker** — inline member picker in "This Week's Rotation" now filters to non-Away members only; previously Away members appeared in the list and selecting one would silently skip updating `rotation_offset`, causing a future rotation mismatch
+- **Chores pending tasks assignee** — Pending Tasks now shows the assignee's username for other members' tasks (e.g. "Alex · Due Jun 12"); previously only showed the due date with no indication of whose task it was
+- **Shopping realtime filter** — Supabase Realtime subscriptions for `shopping_items` and `shopping_list` now include `household_id` filter; previously any household's shopping changes would trigger a reload on all households
+- **Guest $0 surcharge filter** — `useGuestSurcharge` now filters out zero-amount results; prevents a "+$0.00 utility surcharge" from appearing when a guest overstays but no utility bills have been entered yet
+
+### Session 26 — Guest Surcharge Removed
+- **Guest surcharge feature removed** — `useGuestSurcharge` hook deleted; all surcharge UI removed from Guests page (overstay alert panel, Overstay badge, red card border, max-nights subheading, transaction/agreement queries); Guests page now shows only the visit log with name, dates, nights, and host
+
+### Session 25 QA Bug Fixes
+- **Bookings end-time 12h format** — end-time hour dropdown now uses `fmt12()` (12-hour AM/PM) instead of 24-hour `HH:00` format, matching the start-time dropdown
+- **Guests delete** — hosts can now delete their own guest log entries via a ✕ button on each log card
+- **Inventory fridge realtime** — `fridge_inventory` table now subscribed to Supabase Realtime alongside `household_inventory`; food items added in Pantry reflect immediately without manual refresh
+- **Pets cross-device name sync** — pet name discovery now queries all-time pet logs (not just today's), so roommates see all household pets even when no actions were logged today
+- **Onboarding photo overwrite fix** — uploading a HomeBase-specific photo no longer overwrites the global LyfeWare `avatar_url`; homebase URL stored only in `homebase_avatar_url` when a global avatar already exists
+- **Tutorial mobile spotlight fix** — `find()` now checks element dimensions (`width > 0 && height > 0`) before accepting it as found; prevents a broken 0×0 spotlight when `tut-nav-open` (hamburger) is CSS `display:none` on mobile; falls back to preview card instead
+
 ---
 
 ## ❌ Not Yet Implemented / Known Gaps

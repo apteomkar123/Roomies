@@ -79,9 +79,12 @@ export default function Tutorial() {
     const find = () => {
       const el = document.getElementById(current.elementId)
       if (el) {
-        setRect(el.getBoundingClientRect())
-        setIsFallback(false)
-        return true
+        const r = el.getBoundingClientRect()
+        if (r.width > 0 && r.height > 0) {
+          setRect(r)
+          setIsFallback(false)
+          return true
+        }
       }
       return false
     }

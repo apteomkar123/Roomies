@@ -25,8 +25,8 @@ export default function Shopping() {
     load()
     // Subscribe to both tables for real-time updates
     const ch = supabase.channel(`shopping:${household.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, load)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items', filter: `household_id=eq.${household.id}` }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list', filter: `household_id=eq.${household.id}` }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [household]) // eslint-disable-line react-hooks/exhaustive-deps

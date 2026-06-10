@@ -2,24 +2,19 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
-import { useGuestSurcharge } from '../hooks/useGuestSurcharge'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import type { GuestLog, Transaction, CoLivingAgreement } from '../types'
+import type { GuestLog } from '../types'
 import { format, differenceInDays } from 'date-fns'
 
 export default function Guests() {
   const { user } = useAuth()
   const { household } = useHousehold()
   const [logs, setLogs] = useState<GuestLog[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [agreement, setAgreement] = useState<CoLivingAgreement | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [arrival, setArrival] = useState('')
   const [departure, setDeparture] = useState('')
-
-  const surcharges = useGuestSurcharge(logs, transactions, agreement)
 
   useEffect(() => {
     if (!household) return
@@ -32,14 +27,12 @@ export default function Guests() {
 
   async function loadAll() {
     if (!household) return
-    const [{ data: g }, { data: tx }, { data: ag }] = await Promise.all([
-      supabase.from('guest_logs').select('*, profiles(username)').eq('household_id', household.id).order('arrival_date', { ascending: false }),
-      supabase.from('transactions').select('*').eq('household_id', household.id),
-      supabase.from('coliving_agreements').select('*').eq('household_id', household.id).single(),
-    ])
+    const { data: g } = await supabase
+      .from('guest_logs')
+      .select('*, profiles(username)')
+      .eq('household_id', household.id)
+      .order('arrival_date', { ascending: false })
     setLogs((g ?? []) as GuestLog[])
-    setTransactions((tx ?? []) as Transaction[])
-    setAgreement(ag as CoLivingAgreement | null)
   }
 
   async function addLog() {
@@ -49,18 +42,19 @@ export default function Guests() {
     setGuestName(''); setArrival(''); setDeparture(''); setShowAdd(false); loadAll()
   }
 
-  const maxMatch = agreement?.guest_overstay_rules?.match(/(\d+)/)
-  const maxNights = maxMatch ? parseInt(maxMatch[1]) : 3
+  async function deleteLog(id: string) {
+    await supabase.from('guest_logs').delete().eq('id', id)
+    loadAll()
+  }
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
 
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontWeight: 900, fontSize: 28, margin: 0, letterSpacing: '-0.5px' }}>Guests</h1>
-          <div style={{ color: '#6B7280', fontSize: 14 }}>Guest log · max {maxNights} nights</div>
+          <div style={{ color: '#6B7280', fontSize: 14 }}>Guest visit log</div>
         </div>
         <button onClick={() => setShowAdd(!showAdd)} style={{ background: 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: 'white', border: 'none', borderRadius: 14, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
           + Log Guest
@@ -84,24 +78,10 @@ export default function Guests() {
         </GlassPanel>
       )}
 
-      {/* Surcharge alerts */}
-      {surcharges.length > 0 && (
-        <GlassPanel style={{ padding: 20, marginBottom: 20, border: '1.5px solid rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#E11D48', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Overstay Surcharges</div>
-          {surcharges.map((s, i) => (
-            <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid rgba(244,63,94,0.1)' }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{s.guestName} — {s.overstayDays} day(s) over limit</div>
-              <div style={{ fontSize: 13, color: '#E11D48', fontWeight: 700 }}>+${s.surchargeAmount.toFixed(2)} utility surcharge applied to host</div>
-            </div>
-          ))}
-        </GlassPanel>
-      )}
-
       {logs.map(log => {
         const nights = differenceInDays(new Date(log.departure_date), new Date(log.arrival_date))
-        const over = nights > maxNights
         return (
-          <GlassPanel key={log.id} style={{ padding: 20, marginBottom: 14, border: over ? '1.5px solid rgba(244,63,94,0.3)' : undefined }}>
+          <GlassPanel key={log.id} style={{ padding: 20, marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 16 }}>{log.guest_name}</div>
@@ -110,7 +90,11 @@ export default function Guests() {
                 </div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Host: {log.profiles?.username}</div>
               </div>
-              {over && <span style={{ background: 'rgba(244,63,94,0.1)', color: '#E11D48', padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>Overstay</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {log.host_id === user?.id && (
+                  <button onClick={() => deleteLog(log.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
+                )}
+              </div>
             </div>
           </GlassPanel>
         )
