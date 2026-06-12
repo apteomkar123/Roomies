@@ -86,6 +86,8 @@ export default function More() {
     if (!user || hhId === profile?.active_household_id) return
     setHhLoading(true)
     await supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id)
+    // Sync active household to auth.user_metadata so Pantry reads the same value
+    await supabase.auth.updateUser({ data: { active_household_id: hhId } })
     supabase.from('cross_app_activity').insert({
       user_id: user.id, app: 'homebase', activity_type: 'household_switched', is_public: false,
       payload: { new_household_id: hhId },
@@ -104,6 +106,13 @@ export default function More() {
       const nextId = remaining[0]?.id ?? null
       await supabase.from('profiles').update({ active_household_id: nextId }).eq('id', user.id)
     }
+    // Sync removal to auth.user_metadata so Pantry stops referencing the left household
+    const { data: { user: cu } } = await supabase.auth.getUser()
+    const cuMeta = cu?.user_metadata ?? {}
+    const metaIds: string[] = cuMeta.household_ids ?? (cuMeta.household_id ? [cuMeta.household_id] : [])
+    const newMetaIds = metaIds.filter((id: string) => id !== hhId)
+    const newMetaActive = cuMeta.active_household_id === hhId ? (newMetaIds[0] ?? null) : cuMeta.active_household_id
+    await supabase.auth.updateUser({ data: { household_ids: newMetaIds, active_household_id: newMetaActive } })
     await refreshProfile()
     loadMyHouseholds()
     setDeleteConfirm(null)
@@ -130,6 +139,14 @@ export default function More() {
     const { error } = await supabase.from('household_members').insert({ household_id: hh.id, profile_id: user.id, role: 'Tenant' })
     if (error && error.code !== '23505') { setJoinError(error.message); setHhLoading(false); return }
     await supabase.from('profiles').update({ active_household_id: hh.id }).eq('id', user.id)
+    // Sync to auth.user_metadata so Pantry/other apps discover this household
+    const { data: { user: cu } } = await supabase.auth.getUser()
+    const cuMeta = cu?.user_metadata ?? {}
+    const existingIds: string[] = cuMeta.household_ids ?? (cuMeta.household_id ? [cuMeta.household_id] : [])
+    await supabase.auth.updateUser({ data: {
+      household_ids: existingIds.includes(hh.id) ? existingIds : [...existingIds, hh.id],
+      active_household_id: hh.id,
+    }})
     await refreshProfile()
     loadMyHouseholds()
     setJoinCode(''); setShowJoinNew(false)
@@ -147,6 +164,14 @@ export default function More() {
       supabase.from('household_members').insert({ household_id: hhId, profile_id: user.id, role: 'Administrator' }),
       supabase.from('profiles').update({ active_household_id: hhId }).eq('id', user.id),
     ])
+    // Sync to auth.user_metadata so Pantry/other apps discover this household
+    const { data: { user: cu } } = await supabase.auth.getUser()
+    const cuMeta = cu?.user_metadata ?? {}
+    const existingIds: string[] = cuMeta.household_ids ?? (cuMeta.household_id ? [cuMeta.household_id] : [])
+    await supabase.auth.updateUser({ data: {
+      household_ids: [...existingIds.filter((id: string) => id !== hhId), hhId],
+      active_household_id: hhId,
+    }})
     supabase.from('cross_app_activity').insert({
       user_id: user.id, app: 'homebase', activity_type: 'household_created', is_public: false,
       payload: { household_id: hhId, name: newHouseholdName.trim() },

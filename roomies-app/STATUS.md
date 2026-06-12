@@ -166,6 +166,9 @@ A living document tracking what's shipped, what works, and what's pending.
 - **Shopping realtime filter** — Supabase Realtime subscriptions for `shopping_items` and `shopping_list` now include `household_id` filter; previously any household's shopping changes would trigger a reload on all households
 - **Guest $0 surcharge filter** — `useGuestSurcharge` now filters out zero-amount results; prevents a "+$0.00 utility surcharge" from appearing when a guest overstays but no utility bills have been entered yet
 
+### Session 27 — Cross-App Household Sync Fix
+- **Household sync with Pantry** — Roomies now writes household changes to `auth.user_metadata` (fields `household_ids`, `active_household_id`) whenever a household is created, joined, switched, or left. Previously only `profiles.active_household_id` was updated, so Pantry (which reads from `user_metadata`) would not see households created or joined in HomeBase. Fixed in `Onboarding.tsx` (`handleFinishCreate`, `handleFinishJoin`) and `More.tsx` (`switchHousehold`, `joinNewHousehold`, `createNewHousehold`, `leaveHousehold`).
+
 ### Session 26 — Guest Surcharge Removed
 - **Guest surcharge feature removed** — `useGuestSurcharge` hook deleted; all surcharge UI removed from Guests page (overstay alert panel, Overstay badge, red card border, max-nights subheading, transaction/agreement queries); Guests page now shows only the visit log with name, dates, nights, and host
 
