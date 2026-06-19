@@ -124,7 +124,14 @@ export default function More() {
     setHhLoading(true)
     await supabase.from('households').delete().eq('id', hhId)
     // profiles.active_household_id is ON DELETE SET NULL so DB handles clearing it,
-    // but we still need to refresh local state.
+    // but auth.user_metadata still holds the stale id — clean it up so Pantry
+    // doesn't try to load a deleted household and end up with no active household.
+    const { data: { user: cu } } = await supabase.auth.getUser()
+    const cuMeta = cu?.user_metadata ?? {}
+    const metaIds: string[] = cuMeta.household_ids ?? (cuMeta.household_id ? [cuMeta.household_id] : [])
+    const newMetaIds = metaIds.filter((id: string) => id !== hhId)
+    const newMetaActive = cuMeta.active_household_id === hhId ? (newMetaIds[0] ?? null) : cuMeta.active_household_id
+    await supabase.auth.updateUser({ data: { household_ids: newMetaIds, active_household_id: newMetaActive } })
     await refreshProfile()
     loadMyHouseholds()
     setDeleteHHConfirm(null)

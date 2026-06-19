@@ -166,6 +166,11 @@ A living document tracking what's shipped, what works, and what's pending.
 - **Shopping realtime filter** — Supabase Realtime subscriptions for `shopping_items` and `shopping_list` now include `household_id` filter; previously any household's shopping changes would trigger a reload on all households
 - **Guest $0 surcharge filter** — `useGuestSurcharge` now filters out zero-amount results; prevents a "+$0.00 utility surcharge" from appearing when a guest overstays but no utility bills have been entered yet
 
+### Session 30 — Cross-App Sync Deep Fix + Audit (2026-06-18)
+- **deleteHousehold auth.user_metadata cleanup** — `deleteHousehold()` in `More.tsx` now fetches current user metadata, removes the deleted household ID from `household_ids`, picks a new `active_household_id`, and calls `supabase.auth.updateUser()`. Previously the stale household ID remained in Pantry's metadata, causing Pantry to fetch a deleted household and show no active household.
+- **Profile type: hungry_household_id** — Added `hungry_household_id?: string | null` to the `Profile` interface in `src/types/index.ts`. The field was already written in `Onboarding.tsx` but was missing from the type definition, causing a TypeScript mismatch.
+- **Audit verified correct**: `fridge_inventory` insert uses `user_id` (correct per schema), `supabase.removeChannel()` is valid in Supabase JS v2, all Realtime subscriptions are household-filtered, all table names match schema.
+
 ### Session 27 — Cross-App Household Sync Fix
 - **Household sync with Pantry** — Roomies now writes household changes to `auth.user_metadata` (fields `household_ids`, `active_household_id`) whenever a household is created, joined, switched, or left. Previously only `profiles.active_household_id` was updated, so Pantry (which reads from `user_metadata`) would not see households created or joined in HomeBase. Fixed in `Onboarding.tsx` (`handleFinishCreate`, `handleFinishJoin`) and `More.tsx` (`switchHousehold`, `joinNewHousehold`, `createNewHousehold`, `leaveHousehold`).
 

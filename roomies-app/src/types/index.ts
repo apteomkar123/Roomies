@@ -22,6 +22,7 @@ export interface Profile {
   homebase_avatar_url: string | null
   karma: number
   active_household_id: string | null
+  hungry_household_id?: string | null
   away: boolean
   updated_at: string
   has_completed_homebase_tutorial?: boolean
