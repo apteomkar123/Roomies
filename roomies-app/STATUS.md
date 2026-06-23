@@ -4,6 +4,15 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ---
 
+## Session 36 (2026-06-23) — Bug Fixes
+
+| Feature | Status | Notes |
+|---|---|---|
+| **Notices dismiss on acknowledge** — acknowledged notices now disappear immediately and stay gone across sessions | ✅ Fixed | `Notices.tsx` — removed 5-min session timer; `visibleNotices` now simply filters out any notice in `readIds` |
+| **Household join syncs Pantry** — joining a household during onboarding always writes `active_household_id` to `auth.user_metadata` | ✅ Fixed | `Onboarding.tsx` — removed the `if (!existingIds.includes)` guard; `updateUser` now always fires so Pantry picks up the switched household |
+
+---
+
 ## Session 35 (2026-06-23) — LyfeWare Ecosystem Features
 
 | Feature | Status | Notes |

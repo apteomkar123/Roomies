@@ -316,16 +316,17 @@ export default function Onboarding() {
       supabase.from('profiles').update({ active_household_id: joinHousehold.id }).eq('id', user!.id),
     ])
 
-    // Sync to auth.user_metadata so Pantry/other apps discover this household
+    // Sync to auth.user_metadata so Pantry/other apps discover this household.
+    // Always update active_household_id even if the ID is already in household_ids,
+    // so Pantry (which reads from user_metadata) switches to this household.
     const { data: { user: cu } } = await supabase.auth.getUser()
     const cuMeta = cu?.user_metadata ?? {}
     const existingIds: string[] = cuMeta.household_ids ?? (cuMeta.household_id ? [cuMeta.household_id] : [])
-    if (!existingIds.includes(joinHousehold.id)) {
-      await supabase.auth.updateUser({ data: {
-        household_ids: [...existingIds, joinHousehold.id],
-        active_household_id: joinHousehold.id,
-      }})
-    }
+    const newIds = existingIds.includes(joinHousehold.id) ? existingIds : [...existingIds, joinHousehold.id]
+    await supabase.auth.updateUser({ data: {
+      household_ids: newIds,
+      active_household_id: joinHousehold.id,
+    }})
 
     await refreshProfile()
     setLoading(false)

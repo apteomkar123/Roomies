@@ -15,26 +15,16 @@ const TYPE_STYLE: Record<NoticeType, { bg: string; color: string; label: string 
   'Formal Landlord Notice':    { bg: 'rgba(244,63,94,0.08)',  color: '#BE123C', label: '📋 Landlord' },
 }
 
-const ACK_DISMISS_MS = 5 * 60 * 1000 // 5 minutes
-
 export default function Notices() {
   const { user } = useAuth()
   const { household, memberProfiles } = useHousehold()
   const [notices, setNotices] = useState<Notice[]>([])
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
-  const [ackTimes, setAckTimes] = useState<Record<string, number>>({}) // noticeId → timestamp when acked this session
-  const [now, setNow] = useState(Date.now())
   const [showAdd, setShowAdd] = useState(false)
   const [body, setBody] = useState('')
   const [title, setTitle] = useState('')
   const [type, setType] = useState<NoticeType>('Permanent Memo')
   const [saveError, setSaveError] = useState<string | null>(null)
-
-  // Tick every 30 seconds to update visibility of acked notices
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000)
-    return () => clearInterval(t)
-  }, [])
 
   useEffect(() => {
     if (!household) return
@@ -60,7 +50,6 @@ export default function Notices() {
   async function acknowledge(noticeId: string) {
     await supabase.from('read_acks').upsert({ notice_id: noticeId, user_id: user!.id })
     setReadIds(prev => new Set(prev).add(noticeId))
-    setAckTimes(prev => ({ ...prev, [noticeId]: Date.now() }))
   }
 
   async function deleteNotice(id: string) {
@@ -93,13 +82,7 @@ export default function Notices() {
     setBody(''); setTitle(''); setShowAdd(false); loadNotices()
   }
 
-  // Hide notices acknowledged more than 5 minutes ago (this session only)
-  const visibleNotices = notices.filter(n => {
-    if (!readIds.has(n.id)) return true
-    const ackTime = ackTimes[n.id]
-    if (!ackTime) return true // acked in a previous session: still show
-    return now - ackTime < ACK_DISMISS_MS
-  })
+  const visibleNotices = notices.filter(n => !readIds.has(n.id))
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
@@ -131,14 +114,13 @@ export default function Notices() {
 
       {visibleNotices.map(n => {
         const st = TYPE_STYLE[n.type as NoticeType] ?? TYPE_STYLE['Permanent Memo']
-        const read = readIds.has(n.id)
         const isAuthor = n.author_id === user?.id
         return (
-          <GlassPanel key={n.id} style={{ padding: 20, marginBottom: 16, border: `1.5px solid ${read ? 'transparent' : 'rgba(37,99,235,0.2)'}`, opacity: read ? 0.8 : 1 }}>
+          <GlassPanel key={n.id} style={{ padding: 20, marginBottom: 16, border: '1.5px solid rgba(37,99,235,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ background: st.bg, color: st.color, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{st.label}</span>
-                {!read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563EB', display: 'inline-block' }} />}
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563EB', display: 'inline-block' }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(n.created_at), 'MMM d, h:mm a')}</span>
@@ -151,9 +133,7 @@ export default function Notices() {
             <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{n.body}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
               <span style={{ fontSize: 12, color: '#9CA3AF' }}>by {n.profiles?.username}</span>
-              {!read && (
-                <button onClick={() => acknowledge(n.id)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>✓ Acknowledge</button>
-              )}
+              <button onClick={() => acknowledge(n.id)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>✓ Acknowledge</button>
             </div>
           </GlassPanel>
         )
