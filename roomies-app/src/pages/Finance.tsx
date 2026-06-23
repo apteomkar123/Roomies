@@ -99,10 +99,7 @@ export default function Finance() {
 
   async function loadSubs() {
     if (!household) return
-    const [{ data: s }, { data: m }] = await Promise.all([
-      supabase.from('subscriptions').select('*, profiles!owner_id(username)').eq('household_id', household.id).order('started_at'),
-      supabase.from('subscription_members').select('*').in('subscription_id', (subscriptions.map(s => s.id).length ? subscriptions.map(s => s.id) : ['00000000-0000-0000-0000-000000000000'])),
-    ])
+    const { data: s } = await supabase.from('subscriptions').select('*, profiles!owner_id(username)').eq('household_id', household.id).order('started_at')
     const subList = (s ?? []) as Subscription[]
     setSubscriptions(subList)
     // Re-fetch members with correct IDs

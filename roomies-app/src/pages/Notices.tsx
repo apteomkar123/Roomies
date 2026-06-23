@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
-import type { Notice } from '../types'
+import type { Notice, Profile } from '../types'
 import { format } from 'date-fns'
 
 type NoticeType = 'Instant Buzz Notification' | 'Permanent Memo' | 'Formal Landlord Notice'
@@ -19,7 +19,7 @@ const ACK_DISMISS_MS = 5 * 60 * 1000 // 5 minutes
 
 export default function Notices() {
   const { user } = useAuth()
-  const { household } = useHousehold()
+  const { household, memberProfiles } = useHousehold()
   const [notices, setNotices] = useState<Notice[]>([])
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [ackTimes, setAckTimes] = useState<Record<string, number>>({}) // noticeId → timestamp when acked this session
@@ -78,8 +78,8 @@ export default function Notices() {
     // Fire mention_notification events for each @username in the notice body
     const mentioned = [...body.matchAll(/@(\w+)/g)].map(m => m[1].toLowerCase())
     if (mentioned.length && user) {
-      const mentionedProfiles = memberProfiles.filter(p => mentioned.includes(p.username?.toLowerCase()))
-      await Promise.all(mentionedProfiles.map(p =>
+      const mentionedProfiles = memberProfiles.filter((p: Profile) => mentioned.includes(p.username?.toLowerCase()))
+      await Promise.all(mentionedProfiles.map((p: Profile) =>
         supabase.from('cross_app_activity').insert({
           user_id: user.id,
           app: 'homebase',

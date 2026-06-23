@@ -103,3 +103,6 @@ FEATURES TO ADD
 13. Lease countdown — days until lease ends, renewal reminder on Dashboard; host can set dates in Settings — DONE
 14. Emergency contacts card — each roommate stores their emergency contact; all housemates can see — DONE
 15. Incident report — formal log for safety/property incidents (broken window, water leak); timestamped, photo-attachable — DONE
+Netlify gives me the following build error: roomies-app/src/pages/Calendar.tsx: EVENT_ICONS is declared but never used, triggering TypeScript error TS6133.
+roomies-app/src/pages/Finance.tsx: the m binding from Promise.all is unused (TS6133).
+roomies-app/src/pages/Notices.tsx: memberProfiles is referenced without being defined (TS2304), and the callbacks that use p have no type annotations (TS7006).

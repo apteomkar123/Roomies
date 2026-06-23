@@ -7,11 +7,6 @@ import GlassPanel from '../components/ui/GlassPanel'
 import type { HouseEvent } from '../types'
 import { format, isSameDay, isBefore, parseISO, addDays } from 'date-fns'
 
-const EVENT_ICONS: Record<string, string> = {
-  party: '🎉', inspection: '🔍', lease: '📄', cleaning: '🧹',
-  meeting: '👥', move: '📦', maintenance: '🔧', default: '📅'
-}
-
 function getEventIcon(title: string): string {
   const lower = title.toLowerCase()
   if (lower.includes('party') || lower.includes('gathering') || lower.includes('birthday')) return '🎉'
