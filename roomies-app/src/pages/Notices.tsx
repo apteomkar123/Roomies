@@ -74,6 +74,22 @@ export default function Notices() {
     setSaveError(null)
     const { error } = await supabase.from('notices').insert({ household_id: household.id, author_id: user!.id, title: title || null, body, type })
     if (error) { setSaveError(error.message); return }
+
+    // Fire mention_notification events for each @username in the notice body
+    const mentioned = [...body.matchAll(/@(\w+)/g)].map(m => m[1].toLowerCase())
+    if (mentioned.length && user) {
+      const mentionedProfiles = memberProfiles.filter(p => mentioned.includes(p.username?.toLowerCase()))
+      await Promise.all(mentionedProfiles.map(p =>
+        supabase.from('cross_app_activity').insert({
+          user_id: user.id,
+          app: 'homebase',
+          activity_type: 'mention_notification',
+          is_public: false,
+          payload: { household_id: household.id, mentioned_id: p.id, mentioned_name: p.username, context: body.slice(0, 100) },
+        })
+      ))
+    }
+
     setBody(''); setTitle(''); setShowAdd(false); loadNotices()
   }
 

@@ -29,8 +29,8 @@ const STEPS: Step[] = [
     desc: 'Wi-Fi codes, gate sequences, spare key combos. Tap the panel to open the full Lockbox, or tap Reveal — Wi-Fi secrets show a Copy & Connect button.',
     preview: '📶 Wi-Fi: HomeNetwork_5G\n🔑 Gate: #1234*\n🛜 Guest Wi-Fi: HomeGuest' },
   { route: '/', elementId: 'tut-nav-open', title: 'Navigation', side: 'bottom',
-    desc: 'Tap the HomeBase logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Notices, Shopping, Pets, Guests, Lockbox, Karma, Inventory, and Settings.',
-    preview: '≡ Chores  📋 Bills  🛒 Shopping\n📦 Inventory  🎮 Karma  📢 Notices' },
+    desc: 'Tap the HomeBase logo (top-left) or swipe right anywhere on screen to open the menu. All features — Chores, Bills, Calendar, Packages, Move-In checklist, Shopping, Pets, Guests, Lockbox, Karma, Inventory, and Settings.',
+    preview: '≡ Chores  📋 Bills  🛒 Shopping\n📦 Packages  📅 Calendar  🏠 Move-In' },
   { route: '/chores', elementId: 'tut-rotation', title: 'Intensity-Balanced Chores', side: 'bottom',
     desc: 'Chores are assigned by workload intensity — vacuuming and bathrooms weigh heavier than trash or dishes, so no one carries more than their share. Tap an assignee\'s avatar to reassign any chore. Complete one to earn +10 Karma.',
     preview: '🧹 Vacuum living room  →  Alex\n🚽 Clean bathroom  →  You\n🗑️ Take out trash  →  Sam' },
@@ -49,6 +49,15 @@ const STEPS: Step[] = [
   { route: '/inventory', elementId: 'tut-inventory', title: 'Household Inventory', side: 'bottom',
     desc: 'Track your pantry (synced from Pantry) and household supplies like paper towels, cleaning products, and more. Never run out.',
     preview: '🧻 Paper Towels  ▓▓▓░░  60%\n🧹 Dish Soap  ▓▓░░░  40%\n🍚 Rice  ▓░░░░  20%' },
+  { route: '/packages', elementId: 'tut-packages', title: 'Package Tracker', side: 'bottom',
+    desc: 'Log expected deliveries. When a package arrives, mark it so the house knows to pick it up. Tracks carrier and tracking numbers too.',
+    preview: '📦 Amazon order — headphones  Expected\n📬 FedEx parcel  ARRIVED — pick up!\n✅ USPS envelope  Picked up by Alex' },
+  { route: '/calendar', elementId: 'tut-calendar', title: 'House Calendar', side: 'bottom',
+    desc: 'Schedule house events visible to everyone — parties, lease inspections, renewal dates. Shows a "Next 30 Days" mini-calendar at the top.',
+    preview: '📅 Jun 25 — House party 🎉\n🔍 Jul 1 — Landlord inspection\n📄 Aug 31 — Lease renewal' },
+  { route: '/chores', elementId: 'tut-seasonal', title: 'Seasonal Tasks', side: 'top',
+    desc: 'One-off tasks separate from the rotation — "Change furnace filter", "Clean gutters". Anyone can claim and complete for a karma reward.',
+    preview: '🍂 Change furnace filter  +15 karma\n🌿 Clean gutters  +20 karma\n💡 Replace hallway bulb  +10 karma' },
 ]
 
 const TOOLTIP_W = 290

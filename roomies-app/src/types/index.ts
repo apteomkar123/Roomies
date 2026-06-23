@@ -13,6 +13,7 @@ export interface Household {
   invite_code: string
   created_at: string
   created_by: string | null
+  avatar_url: string | null
 }
 
 export interface Profile {
@@ -225,4 +226,136 @@ export interface Transfer {
   from: string
   to: string
   amount: number
+}
+
+export interface RecurringBill {
+  id: string
+  household_id: string
+  created_by: string
+  title: string
+  amount: number
+  category: ExpenseCategory
+  recurrence: string
+  day_of_month: number | null
+  split_equally: boolean
+  is_active: boolean
+  last_generated_at: string | null
+  created_at: string
+  profiles?: Profile
+}
+
+export interface ChoreSwapRequest {
+  id: string
+  household_id: string
+  requester_id: string
+  requestee_id: string
+  requester_assignment_id: string
+  requestee_assignment_id: string | null
+  status: string
+  message: string | null
+  created_at: string
+  requester?: Profile
+  requestee?: Profile
+  requester_assignment?: ChoreAssignment & { chores?: Chore }
+  requestee_assignment?: ChoreAssignment & { chores?: Chore }
+}
+
+export interface Package {
+  id: string
+  household_id: string
+  logged_by: string
+  description: string
+  carrier: string | null
+  tracking_number: string | null
+  expected_date: string | null
+  status: string
+  arrived_at: string | null
+  picked_up_by: string | null
+  created_at: string
+  profiles?: Profile
+  pickup_profile?: Profile
+}
+
+export interface HouseEvent {
+  id: string
+  household_id: string
+  created_by: string
+  title: string
+  description: string | null
+  event_date: string
+  event_time: string | null
+  created_at: string
+  profiles?: Profile
+}
+
+export interface SeasonalTask {
+  id: string
+  household_id: string
+  created_by: string
+  title: string
+  description: string | null
+  karma_reward: number
+  claimed_by: string | null
+  completed: boolean
+  completed_at: string | null
+  created_at: string
+  creator?: Profile
+  claimer?: Profile
+}
+
+export interface MoveInRoom {
+  id: string
+  household_id: string
+  room_name: string
+  created_by: string
+  created_at: string
+  items?: MoveInItem[]
+}
+
+export interface MoveInItem {
+  id: string
+  room_id: string
+  household_id: string
+  item_name: string
+  condition: string
+  notes: string | null
+  photo_url: string | null
+  logged_by: string
+  logged_at: string
+  profiles?: Profile
+}
+
+export interface LeaseInfo {
+  household_id: string
+  lease_start: string | null
+  lease_end: string | null
+  monthly_rent: number | null
+  updated_by: string | null
+  updated_at: string
+}
+
+export interface EmergencyContact {
+  id: string
+  household_id: string
+  profile_id: string
+  contact_name: string
+  relationship: string
+  phone: string
+  email: string | null
+  created_at: string
+  profiles?: Profile
+}
+
+export interface IncidentReport {
+  id: string
+  household_id: string
+  reported_by: string
+  title: string
+  description: string
+  severity: string
+  photo_url: string | null
+  resolved: boolean
+  resolved_at: string | null
+  created_at: string
+  profiles?: Profile
 }

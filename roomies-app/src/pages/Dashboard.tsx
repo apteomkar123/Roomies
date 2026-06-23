@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -6,8 +6,8 @@ import { useHousehold } from '../context/HouseholdContext'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 import AvatarHalo from '../components/ui/AvatarHalo'
-import type { LockboxSecret, PresenceStatus, Chore, ChoreAssignment, Transaction, MaintenanceTicket } from '../types'
-import { format, isSameDay, startOfDay, addDays } from 'date-fns'
+import type { LockboxSecret, PresenceStatus, Chore, ChoreAssignment, Transaction, MaintenanceTicket, CoLivingAgreement, LeaseInfo } from '../types'
+import { format, isSameDay, startOfDay, addDays, differenceInDays, parseISO } from 'date-fns'
 
 function greeting(name?: string | null) {
   const h = new Date().getHours()
@@ -41,6 +41,16 @@ export default function Dashboard() {
   const [choreAssignments, setChoreAssignments] = useState<ChoreAssignment[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>([])
+  const [feedEvents, setFeedEvents] = useState<Array<{ id: string; user_id: string; app: string; activity_type: string; payload: Record<string, string>; created_at: string }>>([])
+  const [feedProfiles, setFeedProfiles] = useState<Record<string, string>>({})
+  const [feedLoading, setFeedLoading] = useState(false)
+  const [weeklyDigest, setWeeklyDigest] = useState<{ groceriesSpent: number; choresDone: number; weekStart: string } | null>(null)
+  const [digestLoading, setDigestLoading] = useState(false)
+  const [recipeNights, setRecipeNights] = useState<Array<{ id: string; recipe_name: string; scheduled_date: string; notes: string | null }>>([])
+  const [recipeNightsLoading, setRecipeNightsLoading] = useState(false)
+  const [agreement, setAgreement] = useState<CoLivingAgreement | null>(null)
+  const [leaseInfo, setLeaseInfo] = useState<LeaseInfo | null>(null)
+  const [now, setNow] = useState(new Date())
 
   useEffect(() => {
     const me = presences.find(p => p.profile_id === user?.id)
@@ -61,7 +71,82 @@ export default function Dashboard() {
     return () => { supabase.removeChannel(ch) }
   }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function loadAll() { loadLockbox(); loadChores(); loadBills(); loadMaintenance() }
+  // Live clock for quiet hours countdown
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(t)
+  }, [])
+
+  function loadAll() { loadLockbox(); loadChores(); loadBills(); loadMaintenance(); loadAgreement(); loadLease(); loadFeed(); loadDigest(); loadRecipeNights() }
+
+  const loadFeed = useCallback(async () => {
+    if (!household) return
+    setFeedLoading(true)
+    const { data: mems } = await supabase.from('household_members').select('profile_id').eq('household_id', household.id)
+    const ids = (mems ?? []).map((m: { profile_id: string }) => m.profile_id)
+    if (!ids.length) { setFeedLoading(false); return }
+    const { data: evts } = await supabase
+      .from('cross_app_activity')
+      .select('id, user_id, app, activity_type, payload, created_at')
+      .in('user_id', ids)
+      .not('activity_type', 'in', '("mood_signal","late_night_active","nutrition_shortfall","audio_features_update")')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    type FeedEvent = { id: string; user_id: string; app: string; activity_type: string; payload: Record<string, string>; created_at: string }
+    const list = (evts ?? []) as FeedEvent[]
+    setFeedEvents(list)
+    const uniqueIds = [...new Set(list.map(e => e.user_id))]
+    if (uniqueIds.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, display_name, username').in('id', uniqueIds)
+      const map: Record<string, string> = {}
+      ;(profs ?? []).forEach((p: { id: string; display_name?: string | null; username?: string | null }) => { map[p.id] = p.display_name ?? p.username ?? 'Member' })
+      setFeedProfiles(map)
+    }
+    setFeedLoading(false)
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadRecipeNights = useCallback(async () => {
+    if (!household) return
+    setRecipeNightsLoading(true)
+    const today = new Date().toISOString().split('T')[0]
+    const twoWeeks = new Date(); twoWeeks.setDate(twoWeeks.getDate() + 14)
+    const { data } = await supabase
+      .from('recipe_nights')
+      .select('id, recipe_name, scheduled_date, notes')
+      .eq('household_id', household.id)
+      .gte('scheduled_date', today)
+      .lte('scheduled_date', twoWeeks.toISOString().split('T')[0])
+      .order('scheduled_date', { ascending: true })
+    setRecipeNights((data ?? []) as Array<{ id: string; recipe_name: string; scheduled_date: string; notes: string | null }>)
+    setRecipeNightsLoading(false)
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDigest = useCallback(async () => {
+    if (!household || !user) return
+    setDigestLoading(true)
+    const weekStart = new Date()
+    weekStart.setDate(weekStart.getDate() - 7)
+    weekStart.setHours(0, 0, 0, 0)
+    const { data: shopItems } = await supabase
+      .from('shopping_list')
+      .select('price, is_completed')
+      .eq('household_id', household.id)
+      .gte('created_at', weekStart.toISOString())
+    const groceriesSpent = (shopItems ?? [])
+      .filter((i: { price: string | null; is_completed: boolean }) => i.is_completed)
+      .reduce((s: number, i: { price: string | null }) => s + (parseFloat(i.price ?? '0') || 0), 0)
+    const { data: choreEvts } = await supabase
+      .from('cross_app_activity')
+      .select('id')
+      .eq('activity_type', 'chore_completed')
+      .gte('created_at', weekStart.toISOString())
+    setWeeklyDigest({
+      groceriesSpent,
+      choresDone: choreEvts?.length ?? 0,
+      weekStart: weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    })
+    setDigestLoading(false)
+  }, [household, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadLockbox() {
     if (!household) return
@@ -98,6 +183,41 @@ export default function Dashboard() {
     setMaintenanceTickets((data ?? []) as MaintenanceTicket[])
   }
 
+  async function loadAgreement() {
+    if (!household) return
+    const { data } = await supabase.from('coliving_agreements').select('*').eq('household_id', household.id).single()
+    setAgreement(data as CoLivingAgreement | null)
+  }
+
+  async function loadLease() {
+    if (!household) return
+    const { data } = await supabase.from('lease_info').select('*').eq('household_id', household.id).single()
+    setLeaseInfo(data as LeaseInfo | null)
+  }
+
+  // Compute quiet hours countdown
+  function quietHoursCountdown(): { label: string; mins: number } | null {
+    if (!agreement) return null
+    const [sh, sm] = agreement.quiet_start.split(':').map(Number)
+    const [eh, em] = agreement.quiet_end.split(':').map(Number)
+    const nowMins = now.getHours() * 60 + now.getMinutes()
+    const startMins = sh * 60 + sm
+    const endMins = eh * 60 + em
+
+    // Determine if currently in quiet hours (handles overnight spans)
+    const inQuiet = startMins > endMins
+      ? (nowMins >= startMins || nowMins < endMins)
+      : (nowMins >= startMins && nowMins < endMins)
+
+    if (inQuiet) {
+      const minsUntilEnd = endMins > nowMins ? endMins - nowMins : (24 * 60 - nowMins) + endMins
+      return { label: 'until quiet hours end', mins: minsUntilEnd }
+    } else {
+      const minsUntilStart = startMins > nowMins ? startMins - nowMins : (24 * 60 - nowMins) + startMins
+      return { label: 'until quiet hours', mins: minsUntilStart }
+    }
+  }
+
   async function updatePresence(status: PresenceStatus) {
     setMyPresence(status)
     await Promise.all([
@@ -121,6 +241,31 @@ export default function Dashboard() {
   const getCustomTextForMember = (profileId: string): string | null =>
     presences.find(p => p.profile_id === profileId)?.custom_text ?? null
 
+  function feedText(e: { user_id: string; app: string; activity_type: string; payload: Record<string, string> }) {
+    const name = feedProfiles[e.user_id] || 'Someone'
+    const p = e.payload || {}
+    switch (e.activity_type) {
+      case 'cooking_started':      return `${name} started cooking ${p.recipe_name || 'a recipe'} 🍳`
+      case 'chore_completed':      return `${name} completed "${p.chore || 'a chore'}" ✅`
+      case 'all_chores_done':      return `${name} — all household chores done! 🎉`
+      case 'all_bills_paid':       return `${name} marked all bills paid 💸`
+      case 'shopping_item_added':  return `${name} added "${p.item || 'an item'}" to shopping 🛒`
+      case 'record_added':         return `${name} added "${p.album || 'an album'}" to Vinyl 🎶`
+      case 'mention_notification': return `${name} mentioned @${p.mentioned_name || 'someone'}`
+      case 'soundtrack_of_week':   return `🎵 Top track: "${p.track_title || '?'}" by ${p.artist || '?'}`
+      case 'recipe_scheduled':     return `${name} scheduled "${p.recipe_name || 'a recipe'}" for ${p.date || 'tonight'} 🍽️`
+      case 'potluck_created':      return `${name} created a potluck / event 🥘`
+      default:                     return null
+    }
+  }
+  function feedTimeAgo(d: string) {
+    const s = (Date.now() - new Date(d).getTime()) / 1000
+    if (s < 60) return 'just now'
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+    return `${Math.floor(s / 86400)}d ago`
+  }
+
   const atStoreMembers = memberProfiles
     .filter(p => p.id !== user?.id)
     .map(p => ({ ...p, storeText: getCustomTextForMember(p.id) }))
@@ -140,7 +285,12 @@ export default function Dashboard() {
             HomeBase
           </div>
           <div style={{ color: '#374151', fontSize: 15, fontWeight: 700 }}>{greeting(profile?.username)}</div>
-          <div style={{ color: '#6B7280', fontSize: 13, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {household?.avatar_url && (
+              <img src={household.avatar_url} alt="" style={{ width: 18, height: 18, borderRadius: 6, objectFit: 'cover', border: '1.5px solid rgba(37,99,235,0.2)' }} />
+            )}
+            <div style={{ color: '#6B7280', fontSize: 13, fontWeight: 500 }}>{household?.name ?? 'Your Home'}</div>
+          </div>
         </div>
         <AvatarHalo avatarUrl={profile?.homebase_avatar_url ?? profile?.avatar_url ?? null} status={myPresence} size={44} username={profile?.username} />
       </div>
@@ -278,6 +428,161 @@ export default function Dashboard() {
               </div>
             )
           })}
+        </GlassPanel>
+      )}
+
+      {/* Quiet Hours Countdown */}
+      {agreement && (() => {
+        const countdown = quietHoursCountdown()
+        if (!countdown) return null
+        const inQuiet = countdown.label.includes('end')
+        const hours = Math.floor(countdown.mins / 60)
+        const mins = countdown.mins % 60
+        const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+        return (
+          <GlassPanel style={{ padding: '14px 16px', marginBottom: 16, background: inQuiet ? 'rgba(139,92,246,0.08)' : 'rgba(37,99,235,0.04)', border: `1.5px solid ${inQuiet ? 'rgba(139,92,246,0.3)' : 'rgba(37,99,235,0.15)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>{inQuiet ? '🤫' : '🕐'}</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: inQuiet ? '#7C3AED' : '#2563EB' }}>
+                  {inQuiet ? '🔕 Quiet Hours Active' : '🔔 Quiet Hours Upcoming'}
+                </div>
+                <div style={{ fontSize: 13, color: '#6B7280' }}>
+                  <strong>{timeStr}</strong> {countdown.label} · {agreement.quiet_start} – {agreement.quiet_end}
+                </div>
+              </div>
+            </div>
+          </GlassPanel>
+        )
+      })()}
+
+      {/* Lease Countdown */}
+      {leaseInfo?.lease_end && (() => {
+        const daysLeft = differenceInDays(parseISO(leaseInfo.lease_end), new Date())
+        const urgent = daysLeft <= 60
+        return (
+          <GlassPanel style={{ padding: '14px 16px', marginBottom: 16, background: urgent ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.04)', border: `1.5px solid ${urgent ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.15)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📄</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: urgent ? '#E11D48' : '#059669' }}>
+                  Lease {daysLeft < 0 ? 'Expired' : daysLeft === 0 ? 'Ends Today!' : `Ends in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`}
+                </div>
+                <div style={{ fontSize: 13, color: '#6B7280' }}>
+                  {format(parseISO(leaseInfo.lease_end), 'MMMM d, yyyy')}
+                  {leaseInfo.monthly_rent ? ` · $${Number(leaseInfo.monthly_rent).toFixed(0)}/mo` : ''}
+                </div>
+              </div>
+            </div>
+          </GlassPanel>
+        )
+      })()}
+
+      {/* House Rules Quick Reference */}
+      {agreement && (
+        <GlassPanel style={{ padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>🏠 House Rules</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ background: 'rgba(139,92,246,0.07)', borderRadius: 10, padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Quiet Hours</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#7C3AED' }}>{agreement.quiet_start} – {agreement.quiet_end}</div>
+            </div>
+            <div style={{ background: 'rgba(37,99,235,0.07)', borderRadius: 10, padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Hygiene Score</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#2563EB' }}>{'⭐'.repeat(agreement.hygiene_score)} {agreement.hygiene_score}/5</div>
+            </div>
+          </div>
+          {agreement.guest_overstay_rules && (
+            <div style={{ marginTop: 8, background: 'rgba(245,158,11,0.07)', borderRadius: 10, padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 2 }}>Guest Policy</div>
+              <div style={{ fontSize: 13, color: '#D97706', fontWeight: 600 }}>{agreement.guest_overstay_rules}</div>
+            </div>
+          )}
+        </GlassPanel>
+      )}
+
+      {/* LyfeWare Feed */}
+      <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🌐 LyfeWare Feed</div>
+          <button onClick={loadFeed} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563EB', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Refresh</button>
+        </div>
+        {feedLoading ? (
+          <div style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Loading…</div>
+        ) : feedEvents.filter(e => feedText(e) !== null).length === 0 ? (
+          <div style={{ color: '#9CA3AF', fontSize: 13 }}>No recent activity. Cook a recipe, complete a chore, or add to the shopping list!</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 320, overflowY: 'auto' }}>
+            {feedEvents.map(e => {
+              const text = feedText(e)
+              if (!text) return null
+              const appIcon: Record<string, string> = { pantry: '🥦', homebase: '🏠', vinyl: '🎵' }
+              return (
+                <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(37,99,235,0.04)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(37,99,235,0.08)' }}>
+                  <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{appIcon[e.app] || '🌐'}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', lineHeight: 1.4 }}>{text}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{feedTimeAgo(e.created_at)}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </GlassPanel>
+
+      {/* Weekly Household Digest */}
+      <GlassPanel style={{ padding: 20, marginBottom: 20, background: 'rgba(139,92,246,0.04)', border: '1.5px solid rgba(139,92,246,0.15)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>📊 Weekly Digest</div>
+          <button onClick={loadDigest} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8B5CF6', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Refresh</button>
+        </div>
+        {digestLoading ? (
+          <div style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Loading…</div>
+        ) : weeklyDigest ? (
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>This week · since {weeklyDigest.weekStart}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ background: 'rgba(16,185,129,0.08)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(16,185,129,0.15)' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>🛒 Groceries Spent</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#059669', marginTop: 4 }}>${weeklyDigest.groceriesSpent.toFixed(2)}</div>
+              </div>
+              <div style={{ background: 'rgba(37,99,235,0.08)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(37,99,235,0.15)' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>✅ Chores Done</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#2563EB', marginTop: 4 }}>{weeklyDigest.choresDone}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ color: '#9CA3AF', fontSize: 13 }}>Tap Refresh to load this week's summary.</div>
+        )}
+      </GlassPanel>
+
+      {/* Recipe Nights */}
+      {(recipeNights.length > 0 || recipeNightsLoading) && (
+        <GlassPanel style={{ padding: 20, marginBottom: 20, background: 'rgba(245,158,11,0.04)', border: '1.5px solid rgba(245,158,11,0.18)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>🍽️ Recipe Nights</div>
+          {recipeNightsLoading ? (
+            <div style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>Loading…</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recipeNights.map(rn => {
+                const date = new Date(rn.scheduled_date + 'T00:00:00')
+                const label = format(date, 'EEE, MMM d')
+                const today = new Date(); today.setHours(0,0,0,0)
+                const isToday = date.getTime() === today.getTime()
+                return (
+                  <div key={rn.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isToday ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '10px 12px', border: isToday ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent' }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>🍳</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rn.recipe_name}</div>
+                      <div style={{ fontSize: 11, color: '#9CA3AF' }}>{label}{isToday ? ' · Today!' : ''}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </GlassPanel>
       )}
 

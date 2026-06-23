@@ -21,6 +21,9 @@ import Pets         from './pages/Pets'
 import More         from './pages/More'
 import Karma        from './pages/Karma'
 import Inventory    from './pages/Inventory'
+import Packages     from './pages/Packages'
+import Calendar     from './pages/Calendar'
+import MoveIn       from './pages/MoveIn'
 
 const Spinner = () => (
   <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f9fb', gap: 16 }}>
@@ -114,6 +117,9 @@ function AppRoutes() {
             <Route path="/more"        element={guard(<More />)} />
             <Route path="/karma"       element={guard(<Karma />)} />
             <Route path="/inventory"   element={guard(<Inventory />)} />
+            <Route path="/packages"    element={guard(<Packages />)} />
+            <Route path="/calendar"    element={guard(<Calendar />)} />
+            <Route path="/move-in"     element={guard(<MoveIn />)} />
             <Route path="*"            element={<Navigate to={authed && hasHousehold ? '/' : '/welcome'} replace />} />
           </Routes>
         </div>

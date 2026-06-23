@@ -15,7 +15,7 @@ interface HouseholdCtx {
 const Ctx = createContext<HouseholdCtx | null>(null)
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const [household, setHousehold] = useState<Household | null>(null)
   const [members, setMembers] = useState<HouseholdMember[]>([])
   const [memberProfiles, setMemberProfiles] = useState<Profile[]>([])
@@ -24,6 +24,23 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   const load = async () => {
     if (!profile?.active_household_id) {
+      // Fallback: if profiles.active_household_id is null (e.g. after a delete or first
+      // login after a DB inconsistency), check household_members for any membership
+      // and self-heal so the rest of the app isn't stuck on an empty state.
+      if (profile?.id) {
+        const { data: memberRows } = await supabase
+          .from('household_members')
+          .select('household_id')
+          .eq('profile_id', profile.id)
+          .limit(1)
+        if (memberRows && memberRows.length > 0) {
+          const healId = memberRows[0].household_id
+          await supabase.from('profiles').update({ active_household_id: healId }).eq('id', profile.id)
+          await supabase.auth.updateUser({ data: { active_household_id: healId } })
+          await refreshProfile() // triggers re-render → load() re-runs with the new value
+          return
+        }
+      }
       setHousehold(null); setMembers([]); setMemberProfiles([]); setPresences([])
       return
     }

@@ -6,7 +6,7 @@ import { calcChoreAssignee } from '../hooks/useChoreRotation'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 import AvatarHalo from '../components/ui/AvatarHalo'
-import type { Chore, ChoreAssignment, KarmaMarketplace, Profile } from '../types'
+import type { Chore, ChoreAssignment, KarmaMarketplace, Profile, ChoreSwapRequest, SeasonalTask } from '../types'
 import { format, addDays, startOfDay, isSameDay, differenceInDays } from 'date-fns'
 
 type ChoreRecurrence = 'Twice Weekly' | 'Weekly' | 'Bi-Weekly' | 'Monthly' | 'Quarterly'
@@ -55,6 +55,17 @@ export default function Chores() {
   const [saveError, setSaveError] = useState<string | null>(null)
   // Reassign UI: holds { choreId, memberId picker open }
   const [reassignChoreId, setReassignChoreId] = useState<string | null>(null)
+  // Swap requests
+  const [swapRequests, setSwapRequests] = useState<ChoreSwapRequest[]>([])
+  const [swappingAssignmentId, setSwappingAssignmentId] = useState<string | null>(null)
+  const [swapRequesteeId, setSwapRequesteeId] = useState<string>('')
+  const [swapMessage, setSwapMessage] = useState('')
+  // Seasonal tasks
+  const [seasonalTasks, setSeasonalTasks] = useState<SeasonalTask[]>([])
+  const [showAddSeasonal, setShowAddSeasonal] = useState(false)
+  const [seasonalTitle, setSeasonalTitle] = useState('')
+  const [seasonalDesc, setSeasonalDesc] = useState('')
+  const [seasonalKarma, setSeasonalKarma] = useState('15')
 
   useEffect(() => {
     if (!user) return
@@ -75,12 +86,38 @@ export default function Chores() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chores' }, loadAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chore_assignments' }, loadAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'karma_marketplace' }, loadAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chore_swap_requests', filter: `household_id=eq.${household.id}` }, loadSwaps)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'seasonal_tasks', filter: `household_id=eq.${household.id}` }, loadSeasonal)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function loadSwaps() {
+    if (!household) return
+    const { data } = await supabase
+      .from('chore_swap_requests')
+      .select('*, requester:requester_id(username), requestee:requestee_id(username), requester_assignment:requester_assignment_id(*, chores(title)), requestee_assignment:requestee_assignment_id(*, chores(title))')
+      .eq('household_id', household.id)
+      .eq('status', 'Pending')
+      .order('created_at', { ascending: false })
+    setSwapRequests((data ?? []) as ChoreSwapRequest[])
+  }
+
+  async function loadSeasonal() {
+    if (!household) return
+    const { data } = await supabase
+      .from('seasonal_tasks')
+      .select('*, creator:created_by(username), claimer:claimed_by(username)')
+      .eq('household_id', household.id)
+      .eq('completed', false)
+      .order('created_at', { ascending: false })
+    setSeasonalTasks((data ?? []) as SeasonalTask[])
+  }
+
   async function loadAll() {
     if (!household) return
+    loadSwaps()
+    loadSeasonal()
     const calendarEnd = addDays(new Date(), 14).toISOString()
     const [{ data: c }, { data: a }, { data: m }, { data: upcoming }] = await Promise.all([
       supabase.from('chores').select('*').eq('household_id', household.id),
@@ -233,6 +270,65 @@ export default function Chores() {
     loadAll()
   }
 
+  async function requestSwap(myAssignmentId: string) {
+    if (!swapRequesteeId || !household) return
+    const requestee = memberProfiles.find(p => p.id === swapRequesteeId)
+    if (!requestee) return
+    await supabase.from('chore_swap_requests').insert({
+      household_id: household.id,
+      requester_id: user!.id,
+      requestee_id: swapRequesteeId,
+      requester_assignment_id: myAssignmentId,
+      message: swapMessage.trim() || null,
+    })
+    setSwappingAssignmentId(null); setSwapRequesteeId(''); setSwapMessage('')
+    loadSwaps()
+  }
+
+  async function respondToSwap(swap: ChoreSwapRequest, accept: boolean) {
+    if (accept) {
+      // Swap the assignments
+      await supabase.from('chore_assignments').update({ assigned_to: swap.requestee_id }).eq('id', swap.requester_assignment_id)
+      if (swap.requestee_assignment_id) {
+        await supabase.from('chore_assignments').update({ assigned_to: swap.requester_id }).eq('id', swap.requestee_assignment_id)
+      }
+    }
+    await supabase.from('chore_swap_requests').update({ status: accept ? 'Accepted' : 'Declined' }).eq('id', swap.id)
+    loadSwaps(); loadAll()
+  }
+
+  async function addSeasonalTask() {
+    if (!seasonalTitle.trim() || !household) return
+    await supabase.from('seasonal_tasks').insert({
+      household_id: household.id,
+      created_by: user!.id,
+      title: seasonalTitle.trim(),
+      description: seasonalDesc.trim() || null,
+      karma_reward: parseInt(seasonalKarma) || 15,
+    })
+    setSeasonalTitle(''); setSeasonalDesc(''); setSeasonalKarma('15'); setShowAddSeasonal(false)
+    loadSeasonal()
+  }
+
+  async function claimSeasonalTask(task: SeasonalTask) {
+    await supabase.from('seasonal_tasks').update({ claimed_by: user!.id }).eq('id', task.id)
+    loadSeasonal()
+  }
+
+  async function completeSeasonalTask(task: SeasonalTask) {
+    await supabase.from('seasonal_tasks').update({ completed: true, completed_at: new Date().toISOString() }).eq('id', task.id)
+    if (profile) {
+      await supabase.from('profiles').update({ karma: (profile.karma ?? 100) + task.karma_reward }).eq('id', user!.id)
+      await refreshProfile()
+    }
+    loadSeasonal()
+  }
+
+  async function deleteSeasonalTask(id: string) {
+    await supabase.from('seasonal_tasks').delete().eq('id', id)
+    loadSeasonal()
+  }
+
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px 40px', maxWidth: 700, margin: '0 auto' }}>
       <CanvasBg />
@@ -383,11 +479,65 @@ export default function Chores() {
                   </div>
                 </div>
                 {isMe && (
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <button onClick={() => markDone(a.id)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>✓ Done</button>
                     <button onClick={() => putOnMarketplace(a.id)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'rgba(139,92,246,0.1)', color: '#7C3AED', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Auction</button>
+                    <button onClick={() => setSwappingAssignmentId(swappingAssignmentId === a.id ? null : a.id)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'rgba(245,158,11,0.1)', color: '#D97706', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>⇄ Swap</button>
                   </div>
                 )}
+              </div>
+            )
+          })}
+
+          {/* Inline swap request form */}
+          {swappingAssignmentId && assignments.some(a => a.id === swappingAssignmentId && a.assigned_to === user?.id) && (
+            <div style={{ marginTop: 12, padding: 16, background: 'rgba(245,158,11,0.06)', borderRadius: 12, border: '1px solid rgba(245,158,11,0.2)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706', marginBottom: 10 }}>⇄ Request a Chore Swap</div>
+              <select value={swapRequesteeId} onChange={e => setSwapRequesteeId(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 10, fontFamily: 'inherit' }}>
+                <option value="">Ask whom?</option>
+                {memberProfiles.filter(p => p.id !== user?.id).map(p => <option key={p.id} value={p.id}>{p.username}</option>)}
+              </select>
+              <input className="glass-input" placeholder="Message (optional)" value={swapMessage} onChange={e => setSwapMessage(e.target.value)} style={{ marginBottom: 10 }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => requestSwap(swappingAssignmentId)} disabled={!swapRequesteeId} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: swapRequesteeId ? 'rgba(245,158,11,0.8)' : 'rgba(0,0,0,0.1)', color: swapRequesteeId ? 'white' : '#9CA3AF', fontWeight: 700, cursor: swapRequesteeId ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13 }}>Send Request</button>
+                <button onClick={() => setSwappingAssignmentId(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 13 }}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </GlassPanel>
+      )}
+
+      {/* Swap requests directed to me */}
+      {swapRequests.filter(sr => sr.requestee_id === user?.id).length > 0 && (
+        <GlassPanel style={{ padding: 20, marginBottom: 20, border: '1.5px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.04)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>⇄ Swap Requests for You</div>
+          {swapRequests.filter(sr => sr.requestee_id === user?.id).map(sr => {
+            const requesterName = (sr.requester as { username: string } | undefined)?.username ?? 'Someone'
+            const theirChore = (sr.requester_assignment as { chores?: { title: string } } | undefined)?.chores?.title ?? 'a chore'
+            return (
+              <div key={sr.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{requesterName} wants to swap <em>{theirChore}</em></div>
+                {sr.message && <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>"{sr.message}"</div>}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => respondToSwap(sr, true)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(16,185,129,0.12)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Accept</button>
+                  <button onClick={() => respondToSwap(sr, false)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Decline</button>
+                </div>
+              </div>
+            )
+          })}
+        </GlassPanel>
+      )}
+
+      {/* Sent swap requests waiting */}
+      {swapRequests.filter(sr => sr.requester_id === user?.id).length > 0 && (
+        <GlassPanel style={{ padding: 16, marginBottom: 20, background: 'rgba(245,158,11,0.03)', border: '1px solid rgba(245,158,11,0.15)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Pending Swap Requests Sent</div>
+          {swapRequests.filter(sr => sr.requester_id === user?.id).map(sr => {
+            const requesteeName = (sr.requestee as { username: string } | undefined)?.username ?? 'someone'
+            const myChore = (sr.requester_assignment as { chores?: { title: string } } | undefined)?.chores?.title ?? 'a chore'
+            return (
+              <div key={sr.id} style={{ fontSize: 13, color: '#6B7280', padding: '4px 0' }}>
+                Waiting for <strong>{requesteeName}</strong> to respond about <em>{myChore}</em>
               </div>
             )
           })}
@@ -416,6 +566,65 @@ export default function Chores() {
           <div style={{ fontSize: 14 }}>Add your first chore above</div>
         </div>
       )}
+
+      {/* Seasonal / one-off tasks */}
+      <GlassPanel id="tut-seasonal" style={{ padding: 20, marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🍂 Seasonal Tasks</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>One-off tasks — anyone can claim</div>
+          </div>
+          <button onClick={() => setShowAddSeasonal(!showAddSeasonal)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(245,158,11,0.12)', color: '#D97706', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>+ Add</button>
+        </div>
+
+        {showAddSeasonal && (
+          <div style={{ marginBottom: 16, padding: 14, background: 'rgba(245,158,11,0.06)', borderRadius: 12, border: '1px solid rgba(245,158,11,0.2)' }}>
+            <input className="glass-input" placeholder="Task name (e.g. Change furnace filter)" value={seasonalTitle} onChange={e => setSeasonalTitle(e.target.value)} style={{ marginBottom: 10 }} />
+            <input className="glass-input" placeholder="Details (optional)" value={seasonalDesc} onChange={e => setSeasonalDesc(e.target.value)} style={{ marginBottom: 10 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#6B7280' }}>Karma reward:</label>
+              <input type="number" className="glass-input" value={seasonalKarma} onChange={e => setSeasonalKarma(e.target.value)} style={{ width: 80 }} min="0" max="100" />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={addSeasonalTask} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: 'rgba(245,158,11,0.8)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Add Task</button>
+              <button onClick={() => setShowAddSeasonal(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 13 }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {seasonalTasks.length === 0 && !showAddSeasonal && (
+          <div style={{ color: '#9CA3AF', fontSize: 14 }}>No one-off tasks yet. Add things like "Change furnace filter" or "Clean gutters".</div>
+        )}
+
+        {seasonalTasks.map(task => {
+          const isClaimed = !!task.claimed_by
+          const claimedByMe = task.claimed_by === user?.id
+          const claimerName = (task.claimer as { username: string } | undefined)?.username
+          return (
+            <div key={task.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{task.title}</div>
+                {task.description && <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{task.description}</div>}
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                  ⭐ +{task.karma_reward} karma
+                  {isClaimed && <span style={{ marginLeft: 6, color: '#D97706', fontWeight: 700 }}>· Claimed by {claimedByMe ? 'you' : claimerName}</span>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {!isClaimed && (
+                  <button onClick={() => claimSeasonalTask(task)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(245,158,11,0.12)', color: '#D97706', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>Claim</button>
+                )}
+                {claimedByMe && (
+                  <button onClick={() => completeSeasonalTask(task)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(16,185,129,0.12)', color: '#059669', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✓ Done</button>
+                )}
+                {task.created_by === user?.id && (
+                  <button onClick={() => deleteSeasonalTask(task.id)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>✕</button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </GlassPanel>
     </div>
   )
 }

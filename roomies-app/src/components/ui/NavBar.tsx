@@ -5,23 +5,27 @@ import { useHousehold } from '../../context/HouseholdContext'
 import { supabase } from '../../lib/supabase'
 import {
   Home, CheckSquare, DollarSign, Bell, Calendar, Wrench,
-  ShoppingCart, PawPrint, Users, Lock, Star, Settings, X, Menu, Package
+  ShoppingCart, PawPrint, Users, Lock, Star, Settings, X, Menu, Package,
+  Truck, CalendarDays, ClipboardList
 } from 'lucide-react'
 
 const NAV = [
-  { path: '/',            icon: <Home size={22} />,        label: 'Home'      },
-  { path: '/chores',      icon: <CheckSquare size={22} />, label: 'Chores'    },
-  { path: '/finance',     icon: <DollarSign size={22} />,  label: 'Bills'     },
-  { path: '/notices',     icon: <Bell size={22} />,        label: 'Notices'   },
-  { path: '/bookings',    icon: <Calendar size={22} />,    label: 'Book'      },
-  { path: '/maintenance', icon: <Wrench size={22} />,      label: 'Fix'       },
-  { path: '/shopping',    icon: <ShoppingCart size={22} />,label: 'Shopping'  },
-  { path: '/inventory',   icon: <Package size={22} />,     label: 'Inventory' },
-  { path: '/pets',        icon: <PawPrint size={22} />,    label: 'Pets'      },
-  { path: '/guests',      icon: <Users size={22} />,       label: 'Guests'    },
-  { path: '/lockbox',     icon: <Lock size={22} />,        label: 'Lockbox'   },
-  { path: '/karma',       icon: <Star size={22} />,        label: 'Karma'     },
-  { path: '/more',        icon: <Settings size={22} />,    label: 'Settings'  },
+  { path: '/',            icon: <Home size={22} />,          label: 'Home'       },
+  { path: '/chores',      icon: <CheckSquare size={22} />,   label: 'Chores'     },
+  { path: '/finance',     icon: <DollarSign size={22} />,    label: 'Bills'      },
+  { path: '/notices',     icon: <Bell size={22} />,          label: 'Notices'    },
+  { path: '/bookings',    icon: <Calendar size={22} />,      label: 'Book'       },
+  { path: '/calendar',    icon: <CalendarDays size={22} />,  label: 'Calendar'   },
+  { path: '/maintenance', icon: <Wrench size={22} />,        label: 'Fix'        },
+  { path: '/shopping',    icon: <ShoppingCart size={22} />,  label: 'Shopping'   },
+  { path: '/inventory',   icon: <Package size={22} />,       label: 'Inventory'  },
+  { path: '/packages',    icon: <Truck size={22} />,         label: 'Packages'   },
+  { path: '/pets',        icon: <PawPrint size={22} />,      label: 'Pets'       },
+  { path: '/guests',      icon: <Users size={22} />,         label: 'Guests'     },
+  { path: '/lockbox',     icon: <Lock size={22} />,          label: 'Lockbox'    },
+  { path: '/move-in',     icon: <ClipboardList size={22} />, label: 'Move-In'    },
+  { path: '/karma',       icon: <Star size={22} />,          label: 'Karma'      },
+  { path: '/more',        icon: <Settings size={22} />,      label: 'Settings'   },
 ]
 
 const BADGE_PAGES = ['/notices', '/maintenance']

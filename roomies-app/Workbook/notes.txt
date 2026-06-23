@@ -82,3 +82,24 @@ Adding an inventory item does nothing
 Adding to shopping list gives this: Could not find the 'quantity' column of 'shopping_list' in the schema cache
 When the tutorial shows features that aren't on the page yet, it should show them exactly how they're going to look, not just barely legible text
 Users should be able to add food items through HomeBase to their list synced with Pantry
+
+BUGS TO FIX
+(none at this time)
+
+FEATURES TO ADD
+(moved from Changes.md — Session 31, implemented):
+1. Recurring bills — auto-split monthly expenses (rent, utilities, subscriptions) on a schedule — DONE
+2. Rent tracker — a dedicated widget showing who's paid rent this month — DONE
+3. Custom split ratios — per-transaction basis with individual amount fields; recalculates remaining — DONE
+4. Chore swap requests — send a "trade chores" request; other member accepts or declines — DONE
+5. Completion streak badges — track consecutive weeks each person completed chores; show on karma board — DONE
+6. Package tracker — log expected deliveries; mark as arrived/picked up; notify house — DONE
+7. Shared house calendar/events — schedule house events visible to everyone — DONE
+8. House rules quick-reference card — surfaced from co-living agreement on Dashboard — DONE
+9. Quiet hours countdown widget — live timer on Dashboard showing time until quiet hours start/end — DONE
+10. Seasonal/one-off task list — separate from rotating chores; anyone can claim for karma — DONE
+11. Shared subscription tracker — log Netflix, Spotify, etc. with cost and who's on the plan — DONE
+12. Move-in checklist — photo + condition notes per room for deposit disputes — DONE
+13. Lease countdown — days until lease ends, renewal reminder on Dashboard; host can set dates in Settings — DONE
+14. Emergency contacts card — each roommate stores their emergency contact; all housemates can see — DONE
+15. Incident report — formal log for safety/property incidents (broken window, water leak); timestamped, photo-attachable — DONE

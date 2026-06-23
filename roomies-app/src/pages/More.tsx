@@ -4,6 +4,8 @@ import { useHousehold } from '../context/HouseholdContext'
 import { supabase } from '../lib/supabase'
 import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
+import type { EmergencyContact, LeaseInfo } from '../types'
+import { format, parseISO } from 'date-fns'
 
 type PhotoDialog = 'import-or-new' | 'apply-all' | null
 
@@ -62,10 +64,87 @@ export default function More() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
 
+  // Emergency contacts
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([])
+  const [showAddContact, setShowAddContact] = useState(false)
+  const [ecName, setEcName] = useState('')
+  const [ecRelationship, setEcRelationship] = useState('Family')
+  const [ecPhone, setEcPhone] = useState('')
+  const [ecEmail, setEcEmail] = useState('')
+
+  // Lease info
+  const [leaseInfo, setLeaseInfo] = useState<LeaseInfo | null>(null)
+  const [showEditLease, setShowEditLease] = useState(false)
+  const [leaseStart, setLeaseStart] = useState('')
+  const [leaseEnd, setLeaseEnd] = useState('')
+  const [monthlyRent, setMonthlyRent] = useState('')
+  const [leaseSaved, setLeaseSaved] = useState(false)
+
   useEffect(() => {
     if (!user) return
     loadMyHouseholds()
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!household) return
+    loadEmergencyContacts()
+    loadLeaseInfo()
+  }, [household]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadEmergencyContacts() {
+    if (!household) return
+    const { data } = await supabase
+      .from('emergency_contacts')
+      .select('*, profiles!profile_id(username, avatar_url)')
+      .eq('household_id', household.id)
+      .order('created_at')
+    setEmergencyContacts((data ?? []) as EmergencyContact[])
+  }
+
+  async function loadLeaseInfo() {
+    if (!household) return
+    const { data } = await supabase.from('lease_info').select('*').eq('household_id', household.id).single()
+    if (data) {
+      setLeaseInfo(data as LeaseInfo)
+      setLeaseStart(data.lease_start ?? '')
+      setLeaseEnd(data.lease_end ?? '')
+      setMonthlyRent(data.monthly_rent ? String(data.monthly_rent) : '')
+    }
+  }
+
+  async function addEmergencyContact() {
+    if (!ecName.trim() || !ecPhone.trim() || !household || !user) return
+    await supabase.from('emergency_contacts').insert({
+      household_id: household.id,
+      profile_id: user.id,
+      contact_name: ecName.trim(),
+      relationship: ecRelationship,
+      phone: ecPhone.trim(),
+      email: ecEmail.trim() || null,
+    })
+    setEcName(''); setEcPhone(''); setEcEmail(''); setShowAddContact(false)
+    loadEmergencyContacts()
+  }
+
+  async function deleteEmergencyContact(id: string) {
+    await supabase.from('emergency_contacts').delete().eq('id', id)
+    loadEmergencyContacts()
+  }
+
+  async function saveLease() {
+    if (!household || !user) return
+    await supabase.from('lease_info').upsert({
+      household_id: household.id,
+      lease_start: leaseStart || null,
+      lease_end: leaseEnd || null,
+      monthly_rent: monthlyRent ? parseFloat(monthlyRent) : null,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    setLeaseSaved(true); setTimeout(() => setLeaseSaved(false), 2000)
+    setShowEditLease(false)
+    loadLeaseInfo()
+  }
 
   async function loadMyHouseholds() {
     if (!user) return
@@ -100,19 +179,17 @@ export default function More() {
     if (!user) return
     setHhLoading(true)
     await supabase.from('household_members').delete().eq('household_id', hhId).eq('profile_id', user.id)
-    // Switch active household if this was the active one
-    if (profile?.active_household_id === hhId) {
-      const remaining = myHouseholds.filter(h => h.id !== hhId)
-      const nextId = remaining[0]?.id ?? null
-      await supabase.from('profiles').update({ active_household_id: nextId }).eq('id', user.id)
-    }
     // Sync removal to auth.user_metadata so Pantry stops referencing the left household
     const { data: { user: cu } } = await supabase.auth.getUser()
     const cuMeta = cu?.user_metadata ?? {}
     const metaIds: string[] = cuMeta.household_ids ?? (cuMeta.household_id ? [cuMeta.household_id] : [])
     const newMetaIds = metaIds.filter((id: string) => id !== hhId)
+    // Always compute the new active household (don't rely on stale profile state)
     const newMetaActive = cuMeta.active_household_id === hhId ? (newMetaIds[0] ?? null) : cuMeta.active_household_id
-    await supabase.auth.updateUser({ data: { household_ids: newMetaIds, active_household_id: newMetaActive } })
+    await Promise.all([
+      supabase.from('profiles').update({ active_household_id: newMetaActive }).eq('id', user.id),
+      supabase.auth.updateUser({ data: { household_ids: newMetaIds, active_household_id: newMetaActive } }),
+    ])
     await refreshProfile()
     loadMyHouseholds()
     setDeleteConfirm(null)
@@ -449,6 +526,104 @@ export default function More() {
         >
           🔗 Manage LyfeWare Account
         </a>
+      </GlassPanel>
+
+      {/* Lease Info */}
+      <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>📄 Lease Info</div>
+          <button onClick={() => setShowEditLease(!showEditLease)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(37,99,235,0.1)', color: '#2563EB', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+            {showEditLease ? 'Cancel' : leaseInfo ? 'Edit' : 'Set Up'}
+          </button>
+        </div>
+
+        {!showEditLease && leaseInfo && (leaseInfo.lease_end || leaseInfo.lease_start || leaseInfo.monthly_rent) && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {leaseInfo.lease_start && (
+              <div style={{ background: 'rgba(37,99,235,0.06)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Start</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#2563EB' }}>{format(parseISO(leaseInfo.lease_start), 'MMM d, yyyy')}</div>
+              </div>
+            )}
+            {leaseInfo.lease_end && (
+              <div style={{ background: 'rgba(244,63,94,0.06)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>End</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#E11D48' }}>{format(parseISO(leaseInfo.lease_end), 'MMM d, yyyy')}</div>
+              </div>
+            )}
+            {leaseInfo.monthly_rent && (
+              <div style={{ background: 'rgba(16,185,129,0.06)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Monthly Rent</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#059669' }}>${Number(leaseInfo.monthly_rent).toFixed(0)}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!showEditLease && !leaseInfo && (
+          <div style={{ fontSize: 13, color: '#9CA3AF' }}>No lease info set. Tap "Set Up" to add your lease dates — they'll show as a countdown on the Dashboard.</div>
+        )}
+
+        {showEditLease && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#6B7280', marginBottom: 4 }}>Lease Start</label>
+                <input type="date" className="glass-input" value={leaseStart} onChange={e => setLeaseStart(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#6B7280', marginBottom: 4 }}>Lease End</label>
+                <input type="date" className="glass-input" value={leaseEnd} onChange={e => setLeaseEnd(e.target.value)} />
+              </div>
+            </div>
+            <input className="glass-input" type="number" placeholder="Monthly rent ($)" value={monthlyRent} onChange={e => setMonthlyRent(e.target.value)} style={{ marginBottom: 10 }} />
+            <button onClick={saveLease} style={{ width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: leaseSaved ? 'rgba(16,185,129,0.12)' : 'linear-gradient(135deg,#2563EB,#8B5CF6)', color: leaseSaved ? '#059669' : 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>
+              {leaseSaved ? '✓ Saved!' : 'Save Lease Info'}
+            </button>
+          </div>
+        )}
+      </GlassPanel>
+
+      {/* Emergency Contacts */}
+      <GlassPanel style={{ padding: 20, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>🚨 Emergency Contacts</div>
+          <button onClick={() => setShowAddContact(!showAddContact)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(244,63,94,0.1)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+            {showAddContact ? 'Cancel' : '+ Add'}
+          </button>
+        </div>
+
+        {showAddContact && (
+          <div style={{ marginBottom: 14, padding: 14, background: 'rgba(244,63,94,0.04)', borderRadius: 12, border: '1px solid rgba(244,63,94,0.15)' }}>
+            <input className="glass-input" placeholder="Contact name" value={ecName} onChange={e => setEcName(e.target.value)} style={{ marginBottom: 8 }} />
+            <select value={ecRelationship} onChange={e => setEcRelationship(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid rgba(200,210,230,0.5)', background: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 8, fontFamily: 'inherit' }}>
+              {['Family', 'Parent', 'Sibling', 'Friend', 'Doctor', 'Partner', 'Other'].map(r => <option key={r}>{r}</option>)}
+            </select>
+            <input className="glass-input" placeholder="Phone number" type="tel" value={ecPhone} onChange={e => setEcPhone(e.target.value)} style={{ marginBottom: 8 }} />
+            <input className="glass-input" placeholder="Email (optional)" type="email" value={ecEmail} onChange={e => setEcEmail(e.target.value)} style={{ marginBottom: 10 }} />
+            <button onClick={addEmergencyContact} style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: 'rgba(244,63,94,0.8)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>Save Contact</button>
+          </div>
+        )}
+
+        {emergencyContacts.length === 0 && !showAddContact && (
+          <div style={{ fontSize: 13, color: '#9CA3AF' }}>No emergency contacts added. Each roommate can add their own contacts — visible to everyone in an emergency.</div>
+        )}
+
+        {emergencyContacts.map(ec => (
+          <div key={ec.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{ec.contact_name} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>({ec.relationship})</span></div>
+              <div style={{ fontSize: 13, color: '#374151', marginTop: 2 }}>
+                <a href={`tel:${ec.phone}`} style={{ color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>{ec.phone}</a>
+              </div>
+              {ec.email && <div style={{ fontSize: 12, color: '#9CA3AF' }}>{ec.email}</div>}
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>for {(ec.profiles as { username: string } | undefined)?.username ?? 'member'}</div>
+            </div>
+            {ec.profile_id === user?.id && (
+              <button onClick={() => deleteEmergencyContact(ec.id)} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'rgba(244,63,94,0.08)', color: '#E11D48', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, flexShrink: 0 }}>✕</button>
+            )}
+          </div>
+        ))}
       </GlassPanel>
 
       {/* Delete household confirmation modal */}

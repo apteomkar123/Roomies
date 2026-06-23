@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useHousehold } from '../context/HouseholdContext'
@@ -6,9 +6,12 @@ import CanvasBg from '../components/ui/CanvasBg'
 import GlassPanel from '../components/ui/GlassPanel'
 import type { ShoppingItem } from '../types'
 
+// All shopping items (whether added in HomeBase or Pantry) now live in shopping_list.
+// We keep _source only to detect items that were written before Session 23 (shopping_items table).
 type CombinedItem = ShoppingItem & {
-  _source?: 'pantry'
-  _pantry_id?: string
+  note?: string | null
+  _source?: 'legacy_homebase'
+  _legacy_id?: string
 }
 
 export default function Shopping() {
@@ -19,6 +22,9 @@ export default function Shopping() {
   const [qty, setQty] = useState('1')
   const [urgent, setUrgent] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [noteEditingId, setNoteEditingId] = useState<string | null>(null)
+  const [noteInput, setNoteInput] = useState('')
+  const noteRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!household) return
@@ -34,22 +40,14 @@ export default function Shopping() {
   async function load() {
     if (!household) return
 
-    // Fetch HomeBase items
-    const { data: homebaseData } = await supabase
-      .from('shopping_items')
-      .select('*, profiles(username)')
-      .eq('household_id', household.id)
-      .order('urgent', { ascending: false })
-      .order('created_at', { ascending: false })
-
-    // Cross-app: fetch Pantry shopping_list items for the same household, with real usernames
-    const { data: pantryData } = await supabase
+    // All items (both Pantry-added and HomeBase-added) live in shopping_list since Session 23.
+    const { data: listData } = await supabase
       .from('shopping_list')
       .select('*, profiles!user_id(username)')
       .eq('household_id', household.id)
       .order('created_at', { ascending: false })
 
-    const mappedPantry: CombinedItem[] = (pantryData || []).map(item => ({
+    const unified: CombinedItem[] = (listData || []).map(item => ({
       id: item.id,
       household_id: item.household_id,
       added_by: item.user_id,
@@ -57,13 +55,38 @@ export default function Shopping() {
       quantity: String(item.quantity ?? '1'),
       urgent: item.is_urgent || false,
       purchased: item.is_completed || false,
+      note: item.note ?? null,
       created_at: item.created_at,
-      profiles: { username: (item.profiles as any)?.username ?? 'Pantry' } as any,
-      _source: 'pantry' as const,
-      _pantry_id: item.id,
+      profiles: { username: (item.profiles as any)?.username ?? 'Member' } as any,
     }))
 
-    setItems([...((homebaseData ?? []) as CombinedItem[]), ...mappedPantry])
+    // Legacy fallback: items that were added via shopping_items before Session 23.
+    const { data: legacyData } = await supabase
+      .from('shopping_items')
+      .select('*, profiles(username)')
+      .eq('household_id', household.id)
+      .order('created_at', { ascending: false })
+
+    const legacy: CombinedItem[] = (legacyData || []).map(item => ({
+      id: `legacy_${item.id}`,
+      household_id: item.household_id,
+      added_by: item.added_by,
+      title: item.title,
+      quantity: String(item.quantity ?? '1'),
+      urgent: item.urgent || false,
+      purchased: item.purchased || false,
+      note: null,
+      created_at: item.created_at,
+      profiles: { username: (item.profiles as any)?.username ?? 'Member' } as any,
+      _source: 'legacy_homebase' as const,
+      _legacy_id: item.id,
+    }))
+
+    // Deduplicate by title in case a legacy item was re-added to shopping_list
+    const unifiedTitles = new Set(unified.map(i => i.title?.toLowerCase()))
+    const filteredLegacy = legacy.filter(i => !unifiedTitles.has(i.title?.toLowerCase()))
+
+    setItems([...unified, ...filteredLegacy])
   }
 
   async function addItem() {
@@ -89,20 +112,35 @@ export default function Shopping() {
   }
 
   async function togglePurchased(item: CombinedItem) {
-    if (item._source === 'pantry') {
-      await supabase.from('shopping_list').update({ is_completed: !item.purchased }).eq('id', item._pantry_id!)
+    if (item._source === 'legacy_homebase') {
+      await supabase.from('shopping_items').update({ purchased: !item.purchased }).eq('id', item._legacy_id!)
     } else {
-      await supabase.from('shopping_items').update({ purchased: !item.purchased }).eq('id', item.id)
+      await supabase.from('shopping_list').update({ is_completed: !item.purchased }).eq('id', item.id)
     }
     load()
   }
 
   async function deleteItem(item: CombinedItem) {
-    if (item._source === 'pantry') {
-      await supabase.from('shopping_list').delete().eq('id', item._pantry_id!)
+    if (item._source === 'legacy_homebase') {
+      await supabase.from('shopping_items').delete().eq('id', item._legacy_id!)
     } else {
-      await supabase.from('shopping_items').delete().eq('id', item.id)
+      await supabase.from('shopping_list').delete().eq('id', item.id)
     }
+    load()
+  }
+
+  function startNoteEditing(item: CombinedItem) {
+    setNoteEditingId(item.id)
+    setNoteInput(item.note || '')
+    setTimeout(() => noteRef.current?.focus(), 0)
+  }
+
+  async function commitNote(item: CombinedItem) {
+    const trimmed = noteInput.trim()
+    if (item._source !== 'legacy_homebase') {
+      await supabase.from('shopping_list').update({ note: trimmed || null }).eq('id', item.id)
+    }
+    setNoteEditingId(null)
     load()
   }
 
@@ -133,17 +171,50 @@ export default function Shopping() {
       {pending.length > 0 && (
         <GlassPanel style={{ padding: 20, marginBottom: 20 }}>
           {pending.map(item => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <input type="checkbox" checked={false} onChange={() => togglePurchased(item)} style={{ width: 18, height: 18, accentColor: '#10B981', cursor: 'pointer', flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {item.urgent && <span style={{ background: 'rgba(244,63,94,0.1)', color: '#E11D48', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>URGENT</span>}
-                  <span style={{ fontWeight: 700, fontSize: 15 }}>{item.title}</span>
-                  <span style={{ fontSize: 12, color: '#9CA3AF' }}>×{item.quantity}</span>
+            <div key={item.id} style={{ padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input type="checkbox" checked={false} onChange={() => togglePurchased(item)} style={{ width: 18, height: 18, accentColor: '#10B981', cursor: 'pointer', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {item.urgent && <span style={{ background: 'rgba(244,63,94,0.1)', color: '#E11D48', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>URGENT</span>}
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>{item.title}</span>
+                    <span style={{ fontSize: 12, color: '#9CA3AF' }}>×{item.quantity}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>by {item.profiles?.username}</div>
                 </div>
-                <div style={{ fontSize: 11, color: '#9CA3AF' }}>by {item.profiles?.username}</div>
+                {/* Note button — only for shopping_list rows */}
+                {!item._source && (
+                  <button
+                    onClick={() => startNoteEditing(item)}
+                    title={item.note ? 'Edit note' : 'Add note'}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: item.note ? '#F59E0B' : '#D1D5DB', padding: '4px' }}
+                  >💬</button>
+                )}
+                <button onClick={() => deleteItem(item)} style={{ background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 16 }}>✕</button>
               </div>
-              <button onClick={() => deleteItem(item)} style={{ background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 16 }}>✕</button>
+              {/* Inline note editor */}
+              {noteEditingId === item.id && (
+                <div style={{ marginTop: 8, paddingLeft: 30 }}>
+                  <input
+                    ref={noteRef}
+                    value={noteInput}
+                    onChange={e => setNoteInput(e.target.value)}
+                    onBlur={() => commitNote(item)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitNote(item); if (e.key === 'Escape') setNoteEditingId(null); }}
+                    placeholder="Add a note…"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid #FCD34D', background: '#FFFBEB', fontSize: 13, color: '#78350F', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
+              {/* Display existing note */}
+              {item.note && noteEditingId !== item.id && (
+                <div
+                  onClick={() => startNoteEditing(item)}
+                  style={{ marginTop: 4, paddingLeft: 30, fontSize: 12, color: '#B45309', fontStyle: 'italic', cursor: 'pointer' }}
+                >
+                  💬 {item.note}
+                </div>
+              )}
             </div>
           ))}
         </GlassPanel>

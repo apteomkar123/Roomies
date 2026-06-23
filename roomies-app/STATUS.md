@@ -4,6 +4,19 @@ A living document tracking what's shipped, what works, and what's pending.
 
 ---
 
+## Session 35 (2026-06-23) — LyfeWare Ecosystem Features
+
+| Feature | Status | Notes |
+|---|---|---|
+| **LyfeWare Feed** — live household activity feed in Dashboard | ✅ Complete | `Dashboard.tsx` — cross_app_activity scoped to household members |
+| **Weekly Digest widget** — groceries spent + chores done this week in Dashboard | ✅ Complete | `Dashboard.tsx` — GlassPanel with loadDigest useCallback |
+| **@mentions in Notices** — `@username` in notice body fires `mention_notification` to cross_app_activity | ✅ Complete | `Notices.tsx` — post() detects @handles and writes events for each matched household member |
+| **Recipe Nights calendar** — upcoming scheduled recipe nights from Pantry shown in Dashboard | ✅ Complete | `Dashboard.tsx` — loadRecipeNights queries recipe_nights table; shows next 14 days |
+| **Household avatar** — shows household photo in Dashboard header | ✅ Complete | `Dashboard.tsx` — household.avatar_url displayed next to household name |
+| **Household.avatar_url type** — TypeScript type updated | ✅ Complete | `types/index.ts` — Household interface now has avatar_url field |
+
+---
+
 ## ✅ Implemented & Working
 
 ### Auth
@@ -85,8 +98,10 @@ A living document tracking what's shipped, what works, and what's pending.
 ### Shopping
 - Shared household shopping list
 - Add / remove items, mark as bought
-- **Pantry sync** — adding items fires a cross_app_activity event to sync with Pantry
-- **Error display** — failed inserts now show an inline error message instead of silently doing nothing; root cause: `shopping_list` RLS required `active_household_id` in profiles; migration 007 extends the policy to also accept membership via `household_members`
+- **Pantry sync** — all HomeBase-added items write to `shopping_list` (same table as Pantry); Pantry items appear in HomeBase's shopping page with real usernames; real-time via Supabase Realtime
+- **Unified shopping_list** — `load()` reads from `shopping_list` as the single source of truth for all shopping items; legacy `shopping_items` rows (pre-Session 23) shown as fallback and deduplicated by title
+- **Per-item notes** — tap 💬 on any pending item to add/edit a note ("get the organic one", "we have half a bag left"); stored in `shopping_list.note`; syncs in real-time with Pantry; amber colour when note exists; click the note text to re-edit; legacy shopping_items rows don't support notes
+- **Error display** — failed inserts now show an inline error message instead of silently doing nothing
 
 ### Pets
 - Pet care log (Morning Feed, Evening Feed, Daily Walk, Medication Administered)
@@ -102,8 +117,12 @@ A living document tracking what's shipped, what works, and what's pending.
 ### More / Settings
 - Navigation hub for secondary pages
 - **Multiple households** — view all households, switch active, join a new one via invite code, or create a new one; switches fire cross_app_activity for Pantry sync
+- **leaveHousehold fix** — always updates both `profiles.active_household_id` AND `auth.user_metadata` to the correct next household, regardless of which household was currently marked active in stale profile state
 - Sign out
 - Re-run Tutorial
+
+### HouseholdContext / Core Sync
+- **Fallback household discovery** — if `profiles.active_household_id` is null (e.g. after household deletion or DB inconsistency), HouseholdContext queries `household_members` to find any membership, self-heals `profiles.active_household_id`, and updates `auth.user_metadata`; mirrors the same fallback that exists in Pantry's UserContext
 
 ### Navigation (Left Sidebar)
 - **Left sidebar nav** — replaced bottom capsule with a fixed left sidebar matching the Pantry app style; shows icons + labels on desktop, icons only on mobile (< 640px)
@@ -184,6 +203,45 @@ A living document tracking what's shipped, what works, and what's pending.
 - **Pets cross-device name sync** — pet name discovery now queries all-time pet logs (not just today's), so roommates see all household pets even when no actions were logged today
 - **Onboarding photo overwrite fix** — uploading a HomeBase-specific photo no longer overwrites the global LyfeWare `avatar_url`; homebase URL stored only in `homebase_avatar_url` when a global avatar already exists
 - **Tutorial mobile spotlight fix** — `find()` now checks element dimensions (`width > 0 && height > 0`) before accepting it as found; prevents a broken 0×0 spotlight when `tut-nav-open` (hamburger) is CSS `display:none` on mobile; falls back to preview card instead
+
+### Session 31 — 15 New Features
+
+#### Finance (Bills page)
+- **Recurring bills** — define monthly/weekly/quarterly recurring expenses (rent, utilities, subscriptions); tap "Generate Now" to create the transaction + split for the current period; `recurring_bills` table
+- **Rent tracker tab** — dedicated "Rent" tab showing who's paid rent this month (from Rent-category transactions) and who hasn't; per-person status with amounts
+- **Custom split ratios** — when "Split equally" is unchecked, show each roommate with an editable amount field; validates total doesn't exceed bill amount
+- **Subscriptions tab** — log Netflix, Spotify, Disney+, etc. with monthly cost and which members are on the plan; shows monthly total and per-person share; `subscriptions` + `subscription_members` tables (pre-existing, now UI-complete)
+
+#### Chores page
+- **Chore swap requests** — tap "⇄ Swap" on any of your pending chore assignments; select a roommate and send an optional message; they see a "Swap Requests for You" panel and can Accept/Decline; on accept, assignments are re-assigned to each other; `chore_swap_requests` table
+- **Seasonal / one-off tasks** — separate section at the bottom of Chores; anyone can add tasks like "Change furnace filter" with a karma reward; any roommate can claim and complete; `seasonal_tasks` table
+
+#### Dashboard page
+- **Quiet hours countdown widget** — live timer showing time until quiet hours start (or end if currently in quiet hours); pulls from `coliving_agreements`; updates every minute
+- **Lease countdown widget** — shows days until lease ends with urgency styling (red if ≤ 60 days); links to lease end date from `lease_info` table
+- **House rules quick-reference card** — surfaced from the co-living agreement: quiet hours, hygiene score, and guest policy in a compact grid
+
+#### Karma page
+- **Completion streak badges** — computes consecutive weeks (up to 8 weeks lookback) each member has completed ≥1 chore; badges: ✓ green (1w), ⚡ purple (2w+), 🔥 amber (4w+)
+
+#### More / Settings page
+- **Lease settings** — "Set Up" / "Edit" button to configure lease start, end date, and monthly rent; saved to `lease_info` table; displayed on Dashboard as countdown
+- **Emergency contacts card** — each roommate can add their own emergency contacts (name, relationship, phone, email); all members of the household can see them; `emergency_contacts` table
+
+#### Maintenance page
+- **Incident reports tab** — second tab alongside Work Orders; log safety/property incidents (broken window, water leak) with title, description, severity (Low/Medium/High/Emergency), and optional photo; timestamped; can be marked Resolved; `incident_reports` table
+
+#### New pages
+- **Packages page** (`/packages`) — log expected deliveries with carrier, tracking number, expected date; "Mark Arrived" alerts the house; "Picked Up" marks as claimed; filter by status; real-time sync; `packages` table
+- **House Calendar page** (`/calendar`) — schedule house events with title, description, date, time; "Next 30 Days" mini-calendar at top; upcoming vs. past sections; event type auto-detected with emoji; `house_events` table
+- **Move-In Checklist page** (`/move-in`) — add rooms, then log items per room with condition (Excellent/Good/Fair/Poor/Damaged) and notes; damage summary (issues count); deposit-dispute evidence; `move_in_rooms` + `move_in_items` tables
+
+#### Navigation
+- Added **Calendar** and **Packages** and **Move-In** to the left sidebar nav
+- Updated tutorial to include Packages, Calendar, Seasonal Tasks steps
+
+#### Database
+- Migration `009_new_features.sql`: `recurring_bills`, `chore_swap_requests`, `packages`, `house_events`, `seasonal_tasks`, `move_in_rooms`, `move_in_items`, `lease_info`, `emergency_contacts`, `incident_reports` — all with RLS policies
 
 ---
 
